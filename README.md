@@ -1,6 +1,4 @@
-Sure, here's a more beginner-friendly version of the documentation:
-
-# skpassegna/json-parser: A Beginner's Guide
+# Json Parser: A Beginner's Guide
 
 `skpassegna/json-parser` is a powerful JSON parsing library for PHP that makes working with JSON data a breeze. Whether you're a beginner or an experienced developer, this library provides a simple and intuitive way to handle JSON data in your PHP applications.
 
