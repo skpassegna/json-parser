@@ -9,7 +9,7 @@ use Skpassegna\JsonParser\Exceptions\HumanReadableJsonException;
 use Skpassegna\JsonParser\Contracts\JsonIterable;
 use Skpassegna\JsonParser\Contracts\JsonAccessible;
 
-class JsonParser implements JsonAccessible, JsonIterable
+class JsonParser
 {
 
     /**
@@ -53,4 +53,6 @@ class JsonParser implements JsonAccessible, JsonIterable
             return new JsonValue($data);
         }
     }
+
+    
 }
