@@ -2,7 +2,6 @@
 
 namespace Skpassegna\JsonParser;
 
-use Skpassegna\JsonParser\JsonObject;
 use Skpassegna\JsonParser\Contracts\JsonIterable;
 use Skpassegna\JsonParser\Contracts\JsonAccessible;
 

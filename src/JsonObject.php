@@ -2,7 +2,6 @@
 
 namespace Skpassegna\JsonParser;
 
-
 use Skpassegna\JsonParser\Contracts\JsonIterable;
 use Skpassegna\JsonParser\Contracts\JsonAccessible;
 
@@ -155,11 +154,11 @@ class JsonObject implements JsonAccessible, JsonIterable
     /**
      * Get an iterator for the object properties.
      *
-     * @return \ArrayIterator An iterator for the object properties.
+     * @return \Traversable An iterator for the object properties.
      */
-    public function getIterator(): \ArrayIterator
+    public function getIterator(): \Traversable
     {
-        return new \ArrayIterator($this->data);
+        return new JsonObjectIterator($this->data);
     }
 
     /**
@@ -189,6 +188,7 @@ class JsonObject implements JsonAccessible, JsonIterable
      *
      * @param mixed $offset The offset to set.
      * @param mixed $value The value to set.
+     * @return void
      */
     public function offsetSet($offset, $value): void
     {

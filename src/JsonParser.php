@@ -11,7 +11,6 @@ use Skpassegna\JsonParser\Contracts\JsonAccessible;
 
 class JsonParser
 {
-
     /**
      * Parse a JSON string into a JsonObject or JsonArray instance.
      *
@@ -53,6 +52,4 @@ class JsonParser
             return new JsonValue($data);
         }
     }
-
-    
 }
