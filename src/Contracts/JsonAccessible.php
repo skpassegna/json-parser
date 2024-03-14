@@ -25,6 +25,7 @@ interface JsonAccessible
      *
      * @param mixed $offset The offset to set.
      * @param mixed $value The value to set.
+     * @return void
      */
     public function offsetSet($offset, $value): void;
 
