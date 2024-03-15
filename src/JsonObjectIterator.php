@@ -1,7 +1,10 @@
 <?php
 namespace Skpassegna\JsonParser;
 
-class JsonObjectIterator implements \Traversable
+use Traversable;
+use Iterator;
+
+class JsonObjectIterator implements Iterator
 {
     private $data;
     private $keys;
@@ -13,28 +16,28 @@ class JsonObjectIterator implements \Traversable
         $this->keys = array_keys($data);
     }
 
-    public function current()
+    public function current(): mixed
     {
         $key = $this->keys[$this->position];
         return $this->data[$key];
     }
 
-    public function key()
+    public function key(): mixed
     {
         return $this->keys[$this->position];
     }
 
-    public function next()
+    public function next(): void
     {
         ++$this->position;
     }
 
-    public function rewind()
+    public function rewind(): void
     {
         $this->position = 0;
     }
 
-    public function valid()
+    public function valid(): bool
     {
         return isset($this->keys[$this->position]);
     }
