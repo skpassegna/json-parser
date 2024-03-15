@@ -1,4 +1,5 @@
 <?php
+
 namespace Skpassegna\JsonParser;
 
 use Traversable;

@@ -2,6 +2,7 @@
 
 namespace Skpassegna\JsonParser;
 
+use Skpassegna\JsonParser\Exceptions\JsonKeyNotFoundException;
 use Skpassegna\JsonParser\Contracts\JsonIterable;
 use Skpassegna\JsonParser\Contracts\JsonAccessible;
 

@@ -2,6 +2,8 @@
 
 namespace Skpassegna\JsonParser;
 
+use Skpassegna\JsonParser\Exceptions\JsonKeyNotFoundException;
+
 class JsonHelper
 {
     /**
@@ -12,34 +14,34 @@ class JsonHelper
      * @return bool True if the value exists, false otherwise.
      */
     public static function has($data, string $keyPath): bool
-{
-    if ($data instanceof JsonObject) {
-        return $data->has($keyPath);
-    } elseif ($data instanceof JsonArray) {
-        $keys = explode('.', $keyPath);
-        $key = array_shift($keys);
+    {
+        if ($data instanceof JsonObject) {
+            return $data->has($keyPath);
+        } elseif ($data instanceof JsonArray) {
+            $keys = explode('.', $keyPath);
+            $key = array_shift($keys);
 
-        if (!isset($data[$key])) {
-            throw new JsonKeyNotFoundException($key);
+            if (!isset($data[$key])) {
+                throw new JsonKeyNotFoundException($key);
+            }
+
+            $value = $data[$key];
+
+            if (empty($keys)) {
+                return true;
+            }
+
+            $keyPath = implode('.', $keys);
+
+            if ($value instanceof JsonObject) {
+                return $value->has($keyPath);
+            } elseif ($value instanceof JsonArray) {
+                return static::has($value, $keyPath);
+            }
         }
 
-        $value = $data[$key];
-
-        if (empty($keys)) {
-            return true;
-        }
-
-        $keyPath = implode('.', $keys);
-
-        if ($value instanceof JsonObject) {
-            return $value->has($keyPath);
-        } elseif ($value instanceof JsonArray) {
-            return static::has($value, $keyPath);
-        }
+        throw new JsonException('Invalid data type for has operation.');
     }
-
-    throw new JsonException('Invalid data type for has operation.');
-}
 
 
 
@@ -52,32 +54,32 @@ class JsonHelper
      * @return mixed The value at the specified key path, or the default value if it doesn't exist.
      */
     public static function get($data, string $keyPath, $default = null)
-{
-    if ($data instanceof JsonObject) {
-        return $data->get($keyPath, $default);
-    } elseif ($data instanceof JsonArray) {
-        $keys = explode('.', $keyPath);
-        $key = array_shift($keys);
+    {
+        if ($data instanceof JsonObject) {
+            return $data->get($keyPath, $default);
+        } elseif ($data instanceof JsonArray) {
+            $keys = explode('.', $keyPath);
+            $key = array_shift($keys);
 
-        if (!isset($data[$key])) {
-            throw new JsonKeyNotFoundException($key);
+            if (!isset($data[$key])) {
+                throw new JsonKeyNotFoundException($key);
+            }
+
+            $value = $data[$key];
+
+            if (empty($keys)) {
+                return $value;
+            }
+
+            $keyPath = implode('.', $keys);
+
+            if ($value instanceof JsonObject) {
+                return $value->get($keyPath, $default);
+            } elseif ($value instanceof JsonArray) {
+                return static::get($value, $keyPath, $default);
+            }
         }
 
-        $value = $data[$key];
-
-        if (empty($keys)) {
-            return $value;
-        }
-
-        $keyPath = implode('.', $keys);
-
-        if ($value instanceof JsonObject) {
-            return $value->get($keyPath, $default);
-        } elseif ($value instanceof JsonArray) {
-            return static::get($value, $keyPath, $default);
-        }
+        throw new JsonException('Invalid data type for get operation.');
     }
-
-    throw new JsonException('Invalid data type for get operation.');
-}
 }
