@@ -78,6 +78,10 @@ class JsonObject implements JsonAccessible, JsonIterable
             return $this->getNestedValue($key, $default);
         }
 
+        if (!array_key_exists($key, $this->data)) {
+            throw new JsonKeyNotFoundException($key);
+        }
+
         return $this->data[$key] ?? $default;
     }
 
@@ -125,6 +129,10 @@ class JsonObject implements JsonAccessible, JsonIterable
         if (str_contains($key, '.')) {
             $this->removeNestedValue($key);
         } else {
+            if (!array_key_exists($key, $this->data)) {
+                throw new JsonKeyNotFoundException($key);
+            }
+
             unset($this->data[$key]);
         }
 

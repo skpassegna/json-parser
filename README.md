@@ -1,204 +1,242 @@
-# Json Parser: A Beginner's Guide
+# JSON Parser
 
-`skpassegna/json-parser` is a powerful JSON parsing library for PHP that makes working with JSON data a breeze. Whether you're a beginner or an experienced developer, this library provides a simple and intuitive way to handle JSON data in your PHP applications.
+Welcome to the JSON Parser Wiki! This wiki provides detailed documentation and examples for using the JSON Parser library.
 
-## What is JSON?
+## Table of Contents
 
-JSON (JavaScript Object Notation) is a lightweight data-interchange format that is easy for humans to read and write, and easy for machines to parse and generate. It's widely used for transmitting data between a server and web applications, as well as for storing and retrieving data.
+1. [Introduction](#introduction)
+2. [Installation](#installation)
+3. [Parsing JSON](#parsing-json)
+4. [Working with JSON Objects](#working-with-json-objects)
+  - [Accessing Properties](#accessing-properties)
+  - [Modifying Properties](#modifying-properties)
+  - [Iterating Over Properties](#iterating-over-properties)
+  - [Converting to Array and JSON String](#converting-to-array-and-json-string)
+5. [Working with JSON Arrays](#working-with-json-arrays)
+  - [Filtering Elements](#filtering-elements)
+  - [Mapping Elements](#mapping-elements)
+  - [Sorting Elements](#sorting-elements)
+  - [Getting the Number of Elements](#getting-the-number-of-elements)
+6. [Accessing Nested Values](#accessing-nested-values)
+7. [Error Handling](#error-handling)
+  - [JSON Parsing Errors](#json-parsing-errors)
+  - [Key Not Found Exceptions](#key-not-found-exceptions)
+8. [Testing](#testing)
+9. [Contributing](#contributing)
+10. [License](#license)
 
-Here's an example of a JSON object:
+## Introduction
 
-```json
-{
-  "name": "John Doe",
-  "age": 30,
-  "isStudent": true,
-  "hobbies": ["reading", "hiking", "coding"]
-}
-```
+The JSON Parser library is a robust and user-friendly JSON parsing library for PHP. It provides a convenient way to work with JSON data, allowing you to parse, access, modify, and iterate over JSON objects and arrays with ease.
 
-JSON data can be structured as objects (key-value pairs) or arrays (ordered lists).
+## Installation
 
-## Installing the Library
+You can install the library via Composer:
 
-To start using `skpassegna/json-parser`, you'll need to install it via Composer, the popular PHP package manager. Open your terminal or command prompt, navigate to your project directory, and run the following command:
-
-```
+```bash
 composer require skpassegna/json-parser
 ```
 
-Composer will automatically download and install the library and its dependencies.
+## Parsing JSON
 
-## Parsing JSON Strings
-
-The first step in working with JSON data is to parse a JSON string into a PHP object or array. With `skpassegna/json-parser`, you can do this using the `JsonParser` class:
+To parse a JSON string, use the `JsonParser` class:
 
 ```php
 use Skpassegna\JsonParser\JsonParser;
 
-$jsonParser = new JsonParser();
-$data = $jsonParser->parse('{"name":"John Doe","age":30}');
+$jsonString = '{"name":"John Doe","age":30,"address":{"street":"123 Main St","city":"Anytown","state":"CA"}}';
+$parser = new JsonParser();
+$jsonObject = $parser->parse($jsonString);
 ```
 
-The `parse` method returns either a `JsonObject` or a `JsonArray` instance, depending on the structure of the JSON data. These classes provide convenient methods for accessing and manipulating the parsed data.
+The `parse` method returns either a `JsonObject` or a `JsonArray` instance, depending on the structure of the JSON data.
 
-## Working with JsonObject
+## Working with JSON Objects
 
-The `JsonObject` class represents a JSON object and provides methods for accessing and manipulating its properties.
+The `JsonObject` class provides methods for accessing and modifying JSON object properties.
 
 ### Accessing Properties
 
-You can access properties using object notation or the `get` method:
+You can access JSON object properties using the `get` method or directly using object syntax:
 
 ```php
-echo $data->name; // Output: "John Doe"
-echo $data->get('age'); // Output: 30
+// Using the get method
+$name = $jsonObject->get('name'); // "John Doe"
+
+// Using object syntax
+$name = $jsonObject->name; // "John Doe"
 ```
 
-### Setting Properties
-
-You can set properties using object notation or the `set` method:
+The `get` method also supports accessing nested values using dot notation:
 
 ```php
-$data->name = "Jane Doe";
-$data->set('age', 32);
+$street = $jsonObject->get('address.street'); // "123 Main St"
 ```
 
-### Checking Property Existence
+### Modifying Properties
 
-You can check if a property exists using the `has` method:
+You can set or remove JSON object properties using the `set` and `remove` methods, respectively:
 
 ```php
-if ($data->has('name')) {
-    // Property "name" exists
-}
+// Set a property value
+$jsonObject->set('name', 'Jane Doe');
+
+// Remove a property
+$jsonObject->remove('age');
 ```
 
-### Removing Properties
-
-You can remove a property using the `remove` method:
+You can also set properties directly using object syntax:
 
 ```php
-$data->remove('age');
-```
-
-### Converting to Array or JSON
-
-You can convert a `JsonObject` instance to an associative array or a JSON string using the `toArray` or `toJson` methods, respectively:
-
-```php
-$array = $data->toArray();
-$jsonString = $data->toJson();
+$jsonObject->name = 'Jane Doe';
 ```
 
 ### Iterating Over Properties
 
-You can iterate over the properties of a `JsonObject` instance using a `foreach` loop or the `getIterator` method:
+The `JsonObject` class implements the `IteratorAggregate` interface, allowing you to iterate over its properties:
 
 ```php
-foreach ($data as $key => $value) {
+foreach ($jsonObject as $key => $value) {
     echo "$key: $value\n";
-}
-
-$iterator = $data->getIterator();
-while ($iterator->valid()) {
-    $key = $iterator->key();
-    $value = $iterator->current();
-    echo "$key: $value\n";
-    $iterator->next();
 }
 ```
 
-## Working with JsonArray
+### Converting to Array and JSON String
 
-The `JsonArray` class represents a JSON array and provides methods for filtering, mapping, and sorting its elements.
+You can convert a `JsonObject` instance to a PHP array or a JSON string using the `toArray` and `toJson` methods, respectively:
+
+```php
+// Convert to an array
+$data = $jsonObject->toArray();
+
+// Convert to a JSON string
+$jsonString = $jsonObject->toJson();
+```
+
+## Working with JSON Arrays
+
+The `JsonArray` class extends `JsonObject` and provides additional methods for working with JSON arrays.
 
 ### Filtering Elements
 
-You can filter the elements of a `JsonArray` instance using the `filter` method:
+You can filter the elements of a JSON array using the `filter` method, which accepts a callback function:
 
 ```php
-$filteredArray = $data->filter(function ($value) {
-    return $value > 10;
+$jsonArray = new JsonArray([1, 2, 3, 4, 5]);
+
+// Filter even numbers
+$evenNumbers = $jsonArray->filter(function ($value) {
+    return $value % 2 === 0;
 });
 ```
 
 ### Mapping Elements
 
-You can map the elements of a `JsonArray` instance to a new array using the `map` method:
+You can map the elements of a JSON array to a new array using the `map` method, which accepts a callback function:
 
 ```php
-$mappedArray = $data->map(function ($value) {
+$jsonArray = new JsonArray([1, 2, 3, 4, 5]);
+
+// Double each number
+$doubledNumbers = $jsonArray->map(function ($value) {
     return $value * 2;
 });
 ```
 
 ### Sorting Elements
 
-You can sort the elements of a `JsonArray` instance using the `sort` method:
+You can sort the elements of a JSON array using the `sort` method:
 
 ```php
-$sortedArray = $data->sort(); // Sort in ascending order
+$jsonArray = new JsonArray([5, 3, 1, 4, 2]);
 
-// Sort using a custom comparison function
-$sortedArray = $data->sort(function ($a, $b) {
-    return $b - $a; // Sort in descending order
+// Sort in ascending order
+$sortedNumbers = $jsonArray->sort();
+
+// Sort in descending order using a custom comparison function
+$sortedNumbers = $jsonArray->sort(function ($a, $b) {
+    return $b <=> $a;
 });
 ```
 
-### Getting the Count
+### Getting the Number of Elements
 
-You can get the number of elements in a `JsonArray` instance using the `count` method:
+You can get the number of elements in a JSON array using the `count` method:
 
 ```php
-$count = $data->count();
+$jsonArray = new JsonArray([1, 2, 3, 4, 5]);
+
+$count = $jsonArray->count(); // 5
 ```
 
-## Working with Nested Data
+## Accessing Nested Values
 
-The `JsonHelper` class provides utility methods for working with nested data in JSON objects and arrays.
+You can access nested values in JSON objects and arrays using dot notation with the `get` and `has` methods:
 
-### Checking for Nested Values
+```php
+$street = $jsonObject->get('address.street'); // "123 Main St"
+$hasCity = $jsonObject->has('address.city'); // true
 
-You can check if a nested value exists using the `has` method:
+$city = $jsonArray->get('2.city'); // "Anytown"
+$hasState = $jsonArray->has('2.state'); // true
+```
+
+Alternatively, you can use the `JsonHelper` class, which provides static methods for accessing nested values in both `JsonObject` and `JsonArray` instances:
 
 ```php
 use Skpassegna\JsonParser\JsonHelper;
 
-$data = $jsonParser->parse('{"person":{"name":"John Doe","age":30}}');
+$street = JsonHelper::get($jsonObject, 'address.street'); // "123 Main St"
+$hasCity = JsonHelper::has($jsonObject, 'address.city'); // true
 
-if (JsonHelper::has($data, 'person.name')) {
-    // The nested value "person.name" exists
-}
+$city = JsonHelper::get($jsonArray, '2.city'); // "Anytown"
+$hasState = JsonHelper::has($jsonArray, '2.state'); // true
 ```
 
-### Getting Nested Values
+## Error Handling
 
-You can retrieve a nested value using the `get` method:
+The library includes two types of exceptions for handling errors: `HumanReadableJsonException` and `JsonKeyNotFoundException`.
 
-```php
-$name = JsonHelper::get($data, 'person.name'); // Output: "John Doe"
-$age = JsonHelper::get($data, 'person.age', 0); // Output: 30
-```
+### JSON Parsing Errors
 
-The third argument to `get` is an optional default value to return if the specified key path doesn't exist.
-
-## Handling JSON Errors
-
-If the `parse` method encounters an invalid JSON string, it will throw a `HumanReadableJsonException` with a human-readable error message based on the JSON error code.
+The `HumanReadableJsonException` class is thrown when there is an error parsing a JSON string. This exception provides a human-readable error message based on the JSON error code, making it easier to diagnose and resolve issues:
 
 ```php
 use Skpassegna\JsonParser\Exceptions\HumanReadableJsonException;
 
 try {
-    $data = $jsonParser->parse('invalid json string');
+    $jsonObject = $parser->parse('{invalid}');
 } catch (HumanReadableJsonException $e) {
-    echo $e->getMessage(); // Output: "Invalid or malformed JSON data. The syntax is incorrect."
+    echo $e->getMessage(); // "Invalid or malformed JSON data. The syntax is incorrect."
 }
 ```
 
-## Conclusion
+### Key Not Found Exceptions
 
-The `skpassegna/json-parser` library provides a powerful and user-friendly way to work with JSON data in your PHP applications. With its intuitive API and advanced features like filtering, mapping, sorting, and nested data handling, this library can simplify your JSON-related tasks and help you write cleaner, more maintainable code.
+The `JsonKeyNotFoundException` is thrown when attempting to access or modify non-existent keys or nested values in `JsonObject` and `JsonArray` instances:
 
-Whether you're a beginner or an experienced developer, give `skpassegna/json-parser` a try in your next PHP project, and experience the power of easy JSON parsing!
+```php
+use Skpassegna\JsonParser\Exceptions\JsonKeyNotFoundException;
+
+try {
+    $value = $jsonObject->get('nonexistent');
+} catch (JsonKeyNotFoundException $e) {
+    echo $e->getMessage(); // "Key 'nonexistent' not found in JSON data."
+}
+```
+
+## Testing
+
+The library includes a comprehensive suite of unit tests to ensure its functionality and reliability. You can run the tests using PHPUnit:
+
+```bash
+./vendor/bin/phpunit
+```
+
+## Contributing
+
+Contributions to the JSON Parser library are welcome! If you find any issues or have suggestions for improvements, please open an issue or submit a pull request on the [GitHub repository](https://github.com/skpassegna/json-parser).
+
+## License
+
+The JSON Parser library is open-source software licensed under the [MIT License](https://opensource.org/licenses/MIT).
