@@ -59,4 +59,72 @@ class JsonArray extends JsonObject implements JsonAccessible, JsonIterable
     {
         return count($this->data);
     }
+
+    /**
+     * Merge this array with another JSON array.
+     *
+     * @param JsonArray $other The other JSON array to merge.
+     * @return JsonArray The merged JSON array.
+     */
+    public function merge(JsonArray $other): JsonArray
+    {
+        $merged = clone $this;
+        foreach ($other as $value) {
+            $merged->data[] = $value;
+        }
+        return $merged;
+    }
+
+    /**
+     * Check if this array is equal to another JSON array.
+     *
+     * @param JsonArray $other The other JSON array to compare.
+     * @return bool True if the arrays are equal, false otherwise.
+     */
+    public function equals(JsonArray $other): bool
+    {
+        if (count($this->data) !== count($other->data)) {
+            return false;
+        }
+
+        foreach ($this->data as $key => $value) {
+            $otherValue = $other->data[$key];
+            if ($value instanceof JsonObject && $otherValue instanceof JsonObject) {
+                if (!$value->equals($otherValue)) {
+                    return false;
+                }
+            } elseif ($value instanceof JsonArray && $otherValue instanceof JsonArray) {
+                if (!$value->equals($otherValue)) {
+                    return false;
+                }
+            } else {
+                if ($value !== $otherValue) {
+                    return false;
+                }
+            }
+        }
+
+        return true;
+    }
+
+    /**
+     * Transform this array by applying a callback function to each value.
+     *
+     * @param callable $callback The callback function to apply.
+     * @return JsonArray The transformed JSON array.
+     */
+    public function transform(callable $callback): JsonArray
+    {
+        $transformed = new JsonArray();
+        foreach ($this->data as $value) {
+            if ($value instanceof JsonObject) {
+                $transformed->data[] = $value->transform($callback);
+            } elseif ($value instanceof JsonArray) {
+                $transformed->data[] = $value->transform($callback);
+            } else {
+                $transformed->data[] = $callback($value);
+            }
+        }
+        return $transformed;
+    }
 }

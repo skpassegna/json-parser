@@ -2,6 +2,8 @@
 
 namespace Skpassegna\JsonParser;
 
+use Skpassegna\JsonParser\Exceptions\JsonEncryptionException;
+use Skpassegna\JsonParser\Exceptions\JsonCompressionException;
 use Skpassegna\JsonParser\Contracts\JsonIterable;
 use Skpassegna\JsonParser\Contracts\JsonAccessible;
 
@@ -129,6 +131,89 @@ class JsonObject implements JsonAccessible, JsonIterable
         }
 
         return $this;
+    }
+
+    /**
+     * Merge this object with another JSON object.
+     *
+     * @param JsonObject $other The other JSON object to merge.
+     * @return JsonObject The merged JSON object.
+     */
+    public function merge(JsonObject $other): JsonObject
+    {
+        $merged = clone $this;
+        foreach ($other as $key => $value) {
+            if ($merged->has($key)) {
+                $existingValue = $merged->get($key);
+                if ($existingValue instanceof JsonObject && $value instanceof JsonObject) {
+                    $merged->set($key, $existingValue->merge($value));
+                } elseif ($existingValue instanceof JsonArray && $value instanceof JsonArray) {
+                    $merged->set($key, $existingValue->merge($value));
+                } else {
+                    $merged->set($key, $value);
+                }
+            } else {
+                $merged->set($key, $value);
+            }
+        }
+        return $merged;
+    }
+
+    /**
+     * Check if this object is equal to another JSON object.
+     *
+     * @param JsonObject $other The other JSON object to compare.
+     * @return bool True if the objects are equal, false otherwise.
+     */
+    public function equals(JsonObject $other): bool
+    {
+        if (count($this->data) !== count($other->data)) {
+            return false;
+        }
+
+        foreach ($this->data as $key => $value) {
+            if (!$other->has($key)) {
+                return false;
+            }
+
+            $otherValue = $other->get($key);
+            if ($value instanceof JsonObject && $otherValue instanceof JsonObject) {
+                if (!$value->equals($otherValue)) {
+                    return false;
+                }
+            } elseif ($value instanceof JsonArray && $otherValue instanceof JsonArray) {
+                if (!$value->equals($otherValue)) {
+                    return false;
+                }
+            } else {
+                if ($value !== $otherValue) {
+                    return false;
+                }
+            }
+        }
+
+        return true;
+    }
+
+    /**
+     * Transform this object by applying a callback function to each value.
+     *
+     * @param callable $callback The callback function to apply.
+     * @return JsonObject The transformed JSON object.
+     */
+    public function transform(callable $callback): JsonObject
+    {
+        $transformed = new JsonObject();
+        foreach ($this->data as $key => $value) {
+            if ($value instanceof JsonObject) {
+                $transformed->set($key, $value->transform($callback));
+            } elseif ($value instanceof JsonArray) {
+                $transformed->set($key, $value->transform($callback));
+            } else {
+                $transformed->set($key, $callback($value));
+            }
+        }
+        return $transformed;
     }
 
     /**
@@ -309,5 +394,113 @@ class JsonObject implements JsonAccessible, JsonIterable
         }
 
         unset($ref[$lastKey]);
+    }
+
+    /**
+     * Compress the JSON object.
+     *
+     * @return string The compressed JSON string.
+     * @throws JsonCompressionException If an error occurs during compression.
+     */
+    public function compress(): string
+    {
+        $jsonString = $this->toJson();
+
+        $compressedData = gzcompress($jsonString, 9); // Adjust compression level as needed
+
+        if ($compressedData === false) {
+            throw new JsonCompressionException('Failed to compress JSON data.');
+        }
+
+        return $compressedData;
+    }
+
+    /**
+     * Decompress a compressed JSON string.
+     *
+     * @param string $compressedJson The compressed JSON string.
+     * @return JsonObject The decompressed JSON object.
+     * @throws JsonCompressionException If an error occurs during decompression.
+     */
+    public static function decompress(string $compressedJson): JsonObject
+    {
+        $decompressedData = @gzuncompress($compressedJson);
+
+        if ($decompressedData === false) {
+            throw new JsonCompressionException('Failed to decompress JSON data.');
+        }
+
+        $jsonParser = new JsonParser();
+        return $jsonParser->parse($decompressedData);
+    }
+
+    /**
+     * Encrypt the JSON object.
+     *
+     * @param string $key The encryption key.
+     * @return string The encrypted JSON string.
+     * @throws JsonEncryptionException If an error occurs during encryption.
+     */
+    public function encrypt(string $key): string
+    {
+        $jsonString = $this->toJson();
+
+        $ivLength = openssl_cipher_iv_length('aes-256-cbc');
+        $iv = openssl_random_pseudo_bytes($ivLength);
+
+        $encryptedData = openssl_encrypt($jsonString, 'aes-256-cbc', $key, OPENSSL_RAW_DATA, $iv);
+
+        if ($encryptedData === false) {
+            throw new JsonEncryptionException('Failed to encrypt JSON data.');
+        }
+
+        return base64_encode($iv . $encryptedData);
+    }
+
+    /**
+     * Decrypt an encrypted JSON string.
+     *
+     * @param string $encryptedJson The encrypted JSON string.
+     * @param string $key The encryption key.
+     * @return JsonObject The decrypted JSON object.
+     * @throws JsonEncryptionException If an error occurs during decryption.
+     */
+    public static function decrypt(string $encryptedJson, string $key): JsonObject
+    {
+        $data = base64_decode($encryptedJson);
+
+        $ivLength = openssl_cipher_iv_length('aes-256-cbc');
+        $iv = substr($data, 0, $ivLength);
+        $encryptedData = substr($data, $ivLength);
+
+        $decryptedData = openssl_decrypt($encryptedData, 'aes-256-cbc', $key, OPENSSL_RAW_DATA, $iv);
+
+        if ($decryptedData === false) {
+            throw new JsonEncryptionException('Failed to decrypt JSON data.');
+        }
+
+        $jsonParser = new JsonParser();
+        return $jsonParser->parse($decryptedData);
+    }
+
+    /**
+     * Format the JSON object with proper indentation and spacing.
+     *
+     * @param int $options JSON formatting options (e.g., JSON_PRETTY_PRINT).
+     * @return string The formatted JSON string.
+     */
+    public function format(int $options = JSON_PRETTY_PRINT): string
+    {
+        return json_encode($this->data, $options);
+    }
+
+    /**
+     * Minify the JSON object by removing unnecessary whitespace and formatting.
+     *
+     * @return string The minified JSON string.
+     */
+    public function minify(): string
+    {
+        return json_encode($this->data);
     }
 }

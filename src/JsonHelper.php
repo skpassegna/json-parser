@@ -13,32 +13,26 @@ class JsonHelper
      */
     public static function has($data, string $keyPath): bool
     {
-        if ($data instanceof JsonObject) {
-            return $data->has($keyPath);
-        } elseif ($data instanceof JsonArray) {
-            $keys = explode('.', $keyPath);
-            $key = array_shift($keys);
+        $keys = explode('.', $keyPath);
+        $currentData = $data;
 
-            if (!isset($data[$key])) {
+        foreach ($keys as $key) {
+            if ($currentData instanceof JsonObject) {
+                if (!$currentData->has($key)) {
+                    return false;
+                }
+                $currentData = $currentData->get($key);
+            } elseif ($currentData instanceof JsonArray) {
+                if (!isset($currentData[$key])) {
+                    return false;
+                }
+                $currentData = $currentData[$key];
+            } else {
                 return false;
-            }
-
-            $value = $data[$key];
-
-            if (empty($keys)) {
-                return true;
-            }
-
-            $keyPath = implode('.', $keys);
-
-            if ($value instanceof JsonObject) {
-                return $value->has($keyPath);
-            } elseif ($value instanceof JsonArray) {
-                return static::has($value, $keyPath);
             }
         }
 
-        return false;
+        return true;
     }
 
     /**
@@ -51,31 +45,25 @@ class JsonHelper
      */
     public static function get($data, string $keyPath, $default = null)
     {
-        if ($data instanceof JsonObject) {
-            return $data->get($keyPath, $default);
-        } elseif ($data instanceof JsonArray) {
-            $keys = explode('.', $keyPath);
-            $key = array_shift($keys);
+        $keys = explode('.', $keyPath);
+        $currentData = $data;
 
-            if (!isset($data[$key])) {
+        foreach ($keys as $key) {
+            if ($currentData instanceof JsonObject) {
+                if (!$currentData->has($key)) {
+                    return $default;
+                }
+                $currentData = $currentData->get($key);
+            } elseif ($currentData instanceof JsonArray) {
+                if (!isset($currentData[$key])) {
+                    return $default;
+                }
+                $currentData = $currentData[$key];
+            } else {
                 return $default;
-            }
-
-            $value = $data[$key];
-
-            if (empty($keys)) {
-                return $value;
-            }
-
-            $keyPath = implode('.', $keys);
-
-            if ($value instanceof JsonObject) {
-                return $value->get($keyPath, $default);
-            } elseif ($value instanceof JsonArray) {
-                return static::get($value, $keyPath, $default);
             }
         }
 
-        return $default;
+        return $currentData;
     }
 }
