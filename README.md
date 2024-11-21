@@ -74,6 +74,25 @@ $isValid = $json->validateSchema($schema);
 $results = $json->query('$.address.city');
 ```
 
+## Detailed Usage
+
+```php
+use Skpassegna\Json\Json;
+
+// Parse JSON string
+$json = Json::parse('{"name": "John", "age": 30}');
+
+// Access data
+$name = $json->get('name'); // "John"
+$age = $json->get('age'); // 30
+
+// Modify data
+$json->set('age', 31);
+
+// Convert back to JSON
+$jsonString = $json->toJson();
+```
+
 ## Advanced Features
 
 ### JSON Schema Validation
@@ -136,6 +155,12 @@ $json = Json::parse($input, ['max_depth' => 10]);
 $json = Json::parse($input, ['max_length' => 1000000]);
 ```
 
+## Code Coverage
+
+![Codecov](https://codecov.io/github/skpassegna/json-parser/graphs/sunburst.svg?token=NSLENRDVQ1)
+
+The sunburst chart above provides a visual representation of code coverage across the project. The inner-most circle represents the entire project, with subsequent layers representing folders and files. The size and color of each slice indicate the number of statements and coverage percentage, respectively.
+
 ## Error Handling
 
 The library uses custom exceptions for different types of errors:
@@ -156,24 +181,36 @@ try {
 }
 ```
 
+## Contributing
+
+Contributions are welcome! Please see the [CONTRIBUTING.md](CONTRIBUTING.md) file for guidelines on how to contribute.
+
+## FAQs and Troubleshooting
+
+- **How do I handle errors?**
+  Ensure you catch exceptions when parsing or manipulating JSON data.
+
+- **What PHP versions are supported?**
+  The library supports PHP 8.0 and higher.
+
+## Changelog
+
+For a list of changes and updates, please refer to the [CHANGELOG.md](CHANGELOG.md).
+
 ## Testing
 
 ```bash
 composer test
 ```
 
-## Contributing
+## License
 
-Please see [CONTRIBUTING](CONTRIBUTING.md) for details.
-
-## Security
-
-If you discover any security related issues, please email security@example.com instead of using the issue tracker.
+The MIT License (MIT). Please see [License File](LICENSE.md) for more information.
 
 ## Credits
 
 - [All Contributors](../../contributors)
 
-## License
+## Security
 
-The MIT License (MIT). Please see [License File](LICENSE.md) for more information.
+If you discover any security related issues, please email security@example.com instead of using the issue tracker.
