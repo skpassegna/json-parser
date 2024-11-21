@@ -33,12 +33,15 @@ jobs:
 
       - name: Execute tests
         run: ./vendor/bin/phpunit --log-junit junit.xml
+        continue-on-error: true
 
       - name: Generate code coverage report
+        if: always()
         run: |
           XDEBUG_MODE=coverage ./vendor/bin/phpunit --log-junit junit.xml
 
       - name: Upload coverage reports to Codecov
+        if: always()
         uses: codecov/codecov-action@v4
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
@@ -48,7 +51,7 @@ jobs:
           fail_ci_if_error: true
 
       - name: Upload test results to Codecov
-        if: ${{ !cancelled() }}
+        if: always()
         uses: codecov/test-results-action@v1
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
