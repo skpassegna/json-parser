@@ -1,0 +1,127 @@
+name: CI
+
+on:
+  push:
+    branches: [ main ]
+    paths-ignore:
+      - '**.md'
+      - 'docs/**'
+  pull_request:
+    branches: [ main ]
+    paths-ignore:
+      - '**.md'
+      - 'docs/**'
+  schedule:
+    - cron: '0 0 * * 0'  # Weekly on Sunday
+
+jobs:
+  validate:
+    name: Validate PHP ${{ matrix.php }}
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        php: ['8.0', '8.1', '8.2']
+    
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ matrix.php }}
+          extensions: json, mbstring
+          coverage: none
+          tools: composer:v2
+
+      - name: Validate composer.json
+        run: composer validate --strict
+
+      - name: Install dependencies
+        run: composer install --prefer-dist --no-interaction
+
+      - name: Check code style
+        run: vendor/bin/php-cs-fixer fix --dry-run --diff
+
+      - name: Static analysis
+        run: vendor/bin/phpstan analyse src tests --level=max
+
+  test:
+    name: Test PHP ${{ matrix.php }} - ${{ matrix.deps }}
+    runs-on: ${{ matrix.os }}
+    needs: validate
+    strategy:
+      matrix:
+        php: ['8.0', '8.1', '8.2']
+        deps: [lowest, highest]
+        os: [ubuntu-latest, windows-latest]
+        include:
+          - deps: lowest
+            composer-flags: --prefer-lowest
+          - deps: highest
+            composer-flags: --prefer-stable
+    
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ matrix.php }}
+          extensions: json, mbstring
+          coverage: xdebug
+          tools: composer:v2
+
+      - name: Get composer cache directory
+        id: composer-cache
+        run: echo "dir=$(composer config cache-files-dir)" >> $GITHUB_OUTPUT
+
+      - name: Cache dependencies
+        uses: actions/cache@v3
+        with:
+          path: ${{ steps.composer-cache.outputs.dir }}
+          key: ${{ runner.os }}-composer-${{ hashFiles('**/composer.json') }}-${{ matrix.deps }}
+          restore-keys: ${{ runner.os }}-composer-
+
+      - name: Install dependencies
+        run: composer update ${{ matrix.composer-flags }} --prefer-dist --no-interaction
+
+      - name: Run tests
+        run: vendor/bin/phpunit --coverage-clover=coverage.xml
+
+      - name: Run mutation tests
+        run: |
+          vendor/bin/infection --threads=4 --min-msi=85 --min-covered-msi=90 --coverage=coverage.xml
+
+      - name: Upload coverage
+        uses: codecov/codecov-action@v3
+        with:
+          file: ./coverage.xml
+          fail_ci_if_error: true
+
+  security:
+    name: Security Check
+    runs-on: ubuntu-latest
+    needs: test
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.2'
+          extensions: json, mbstring
+          tools: composer:v2
+
+      - name: Install dependencies
+        run: composer install --prefer-dist --no-interaction
+
+      - name: PHP Security Checker
+        uses: symfonycorp/security-checker-action@v5
+
+      - name: Check known vulnerabilities
+        uses: ossf/scorecard-action@v2
+        with:
+          results_file: results.sarif
+          results_format: sarif
+          publish_results: true

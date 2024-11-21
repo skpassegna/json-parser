@@ -1,0 +1,73 @@
+name: Performance Benchmarks
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - 'src/**'
+      - 'benchmarks/**'
+      - 'phpbench.json'
+      - '.github/workflows/benchmark.yml'
+  pull_request:
+    branches: [ main ]
+    paths:
+      - 'src/**'
+      - 'benchmarks/**'
+      - 'phpbench.json'
+  workflow_dispatch:
+
+jobs:
+  benchmark:
+    name: PHPBench
+    runs-on: ubuntu-latest
+    
+    steps:
+      - uses: actions/checkout@v3
+      
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.2'
+          extensions: json, mbstring
+          coverage: none
+          tools: composer:v2
+      
+      - name: Install dependencies
+        run: composer install --prefer-dist --no-interaction
+      
+      - name: Prepare benchmark fixtures
+        run: |
+          mkdir -p benchmarks/fixtures
+          echo '{"string":"value","number":123,"boolean":true,"null":null,"array":[1,2,3],"object":{"key":"value"}}' > benchmarks/fixtures/simple.json
+          php -r '
+            $data = [];
+            for ($i = 0; $i < 1000; $i++) {
+              $data[] = [
+                "id" => $i,
+                "guid" => uniqid(),
+                "data" => array_fill_keys(range("a", "z"), rand()),
+                "nested" => [
+                  "array" => array_fill(0, 10, rand()),
+                  "object" => (object)array_fill_keys(["x", "y", "z"], rand())
+                ]
+              ];
+            }
+            file_put_contents("benchmarks/fixtures/large.json", json_encode($data));
+          '
+      
+      - name: Run benchmarks
+        run: |
+          vendor/bin/phpbench run --progress=dots --report=aggregate
+
+      - name: Store benchmark results
+        uses: benchmark-action/github-action-benchmark@v1
+        with:
+          name: JSON Parser Benchmarks
+          tool: 'phpbench'
+          output-file-path: .phpbench/baseline.json
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          auto-push: true
+          # Alert if benchmark results are 20% worse than baseline
+          alert-threshold: '120%'
+          comment-on-alert: true
+          fail-on-alert: true

@@ -1,21 +1,28 @@
-name: Testing
+name: Tests
 
 on:
   push:
     branches: [ main ]
+    paths:
+      - '**.php'
+      - 'phpunit.xml'
+      - 'composer.json'
+      - '.github/workflows/testing.yml'
   pull_request:
     branches: [ main ]
+    paths:
+      - '**.php'
+      - 'phpunit.xml'
+      - 'composer.json'
 
 jobs:
-  run-tests:
+  test:
+    name: PHP ${{ matrix.php }} - ${{ matrix.stability }}
     runs-on: ubuntu-latest
     strategy:
-      fail-fast: true
       matrix:
-        php: [8.0, 8.1, 8.2]
+        php: ['8.0', '8.1', '8.2']
         stability: [prefer-lowest, prefer-stable]
-
-    name: P${{ matrix.php }} - ${{ matrix.stability }}
 
     steps:
       - name: Checkout code
@@ -25,33 +32,29 @@ jobs:
         uses: shivammathur/setup-php@v2
         with:
           php-version: ${{ matrix.php }}
-          extensions: json
-          coverage: none
+          extensions: json, mbstring
+          coverage: xdebug
+          tools: composer:v2
+
+      - name: Get composer cache directory
+        id: composer-cache
+        run: echo "dir=$(composer config cache-files-dir)" >> $GITHUB_OUTPUT
+
+      - name: Cache dependencies
+        uses: actions/cache@v3
+        with:
+          path: ${{ steps.composer-cache.outputs.dir }}
+          key: ${{ runner.os }}-composer-${{ hashFiles('**/composer.json') }}-${{ matrix.stability }}
+          restore-keys: ${{ runner.os }}-composer-
 
       - name: Install dependencies
         run: composer update --${{ matrix.stability }} --prefer-dist --no-interaction
 
-      - name: Execute tests
-        run: ./vendor/bin/phpunit --log-junit junit.xml
-        continue-on-error: true
+      - name: Run test suite
+        run: vendor/bin/phpunit --coverage-clover=coverage.xml
 
-      - name: Generate code coverage report
-        if: always()
-        run: |
-          XDEBUG_MODE=coverage ./vendor/bin/phpunit --log-junit junit.xml
-
-      - name: Upload coverage reports to Codecov
-        if: always()
-        uses: codecov/codecov-action@v4
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v3
         with:
-          token: ${{ secrets.CODECOV_TOKEN }}
-          files: ./coverage.xml
-          flags: unittests
-          name: codecov-umbrella
+          file: ./coverage.xml
           fail_ci_if_error: true
-
-      - name: Upload test results to Codecov
-        if: always()
-        uses: codecov/test-results-action@v1
-        with:
-          token: ${{ secrets.CODECOV_TOKEN }}

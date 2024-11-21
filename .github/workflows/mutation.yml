@@ -1,0 +1,44 @@
+name: Mutation Testing
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - '**.php'
+      - 'infection.json'
+      - 'composer.json'
+      - '.github/workflows/mutation.yml'
+  pull_request:
+    branches: [ main ]
+    paths:
+      - '**.php'
+      - 'infection.json'
+      - 'composer.json'
+
+jobs:
+  infection:
+    name: Infection
+    runs-on: ubuntu-latest
+    
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.2'
+          extensions: json, mbstring
+          coverage: xdebug
+          tools: composer:v2
+
+      - name: Install Dependencies
+        run: composer install --prefer-dist --no-interaction
+
+      - name: Run PHPUnit with Coverage
+        run: vendor/bin/phpunit --coverage-xml=coverage-xml --log-junit=junit.xml
+
+      - name: Run Infection
+        run: |
+          vendor/bin/infection --threads=4 --coverage=coverage-xml --show-mutations --no-progress
+        env:
+          STRYKER_DASHBOARD_API_KEY: ${{ secrets.STRYKER_DASHBOARD_API_KEY }}

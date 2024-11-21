@@ -1,0 +1,19 @@
+{
+    "$schema": "./vendor/phpbench/phpbench/phpbench.schema.json",
+    "runner.bootstrap": "vendor/autoload.php",
+    "runner.path": "benchmarks",
+    "runner.retry_threshold": 3,
+    "runner.iterations": 10,
+    "runner.revs": 1000,
+    "runner.warmup": 3,
+    "runner.time_unit": "microseconds",
+    "runner.file_pattern": "*Bench.php",
+    "report.outputs": {
+        "html": {
+            "extends": "html",
+            "file": "benchmarks/report.html",
+            "title": "JSON Parser Benchmarks"
+        }
+    },
+    "runner.assert": "mode(variant.time.avg) < mode(baseline.time.avg) +/- 10%"
+}

@@ -6,155 +6,279 @@ namespace Skpassegna\Json\Tests;
 
 use PHPUnit\Framework\TestCase;
 use Skpassegna\Json\Json;
-use Skpassegna\Json\Exceptions\ParseException;
-use Skpassegna\Json\Exceptions\ValidationException;
+use Skpassegna\Json\Exceptions\JsonException;
+use Skpassegna\Json\Exceptions\TransformException;
 
 class JsonTest extends TestCase
 {
-    private string $sampleJson = '{"name":"John","age":30,"address":{"city":"New York","country":"USA"},"hobbies":["reading","gaming"]}';
-
-    public function testParse(): void
+    /**
+     * @test
+     * @dataProvider validJsonProvider
+     */
+    public function it_encodes_and_decodes_json($input, string $expected): void
     {
-        $json = Json::parse($this->sampleJson);
-        $this->assertEquals('John', $json->get('name'));
-        $this->assertEquals(30, $json->get('age'));
+        $json = new Json($input);
+        $this->assertEquals($expected, $json->encode());
+        $this->assertEquals($input, $json->decode($expected));
     }
 
-    public function testParseInvalidJson(): void
+    public function validJsonProvider(): array
     {
-        $this->expectException(ParseException::class);
-        Json::parse('{invalid json}');
+        return [
+            'simple_array' => [
+                ['name' => 'John', 'age' => 30],
+                '{"name":"John","age":30}'
+            ],
+            'nested_array' => [
+                ['user' => ['name' => 'John', 'age' => 30]],
+                '{"user":{"name":"John","age":30}}'
+            ],
+            'array_with_null' => [
+                ['name' => 'John', 'middle' => null],
+                '{"name":"John","middle":null}'
+            ],
+            'array_with_boolean' => [
+                ['name' => 'John', 'active' => true],
+                '{"name":"John","active":true}'
+            ]
+        ];
     }
 
-    public function testGet(): void
+    /**
+     * @test
+     */
+    public function it_handles_json5_input(): void
     {
-        $json = Json::parse($this->sampleJson);
-        $this->assertEquals('New York', $json->get('address.city'));
-        $this->assertEquals('reading', $json->get('hobbies.0'));
-        $this->assertNull($json->get('nonexistent'));
-        $this->assertEquals('default', $json->get('nonexistent', 'default'));
+        $json5 = '{
+            // Comment
+            name: "John",
+            age: 30,
+        }';
+
+        $json = new Json();
+        $result = $json->fromJson5($json5)->toArray();
+
+        $this->assertEquals([
+            'name' => 'John',
+            'age' => 30
+        ], $result);
     }
 
-    public function testSet(): void
+    /**
+     * @test
+     */
+    public function it_converts_to_xml(): void
     {
-        $json = Json::parse($this->sampleJson);
-        $json->set('name', 'Jane')
-             ->set('address.city', 'Los Angeles')
-             ->set('hobbies.1', 'swimming');
+        $data = [
+            'user' => [
+                'name' => 'John',
+                'age' => 30,
+                'hobbies' => ['reading', 'gaming']
+            ]
+        ];
 
-        $this->assertEquals('Jane', $json->get('name'));
-        $this->assertEquals('Los Angeles', $json->get('address.city'));
-        $this->assertEquals('swimming', $json->get('hobbies.1'));
+        $json = new Json($data);
+        $xml = $json->toXml();
+
+        $this->assertStringContainsString('<user>', $xml);
+        $this->assertStringContainsString('<name>John</name>', $xml);
+        $this->assertStringContainsString('<age>30</age>', $xml);
+        $this->assertStringContainsString('<hobbies>reading</hobbies>', $xml);
     }
 
-    public function testRemove(): void
+    /**
+     * @test
+     */
+    public function it_converts_to_yaml(): void
     {
-        $json = Json::parse($this->sampleJson);
-        $json->remove('age')
-             ->remove('address.city');
+        $data = [
+            'user' => [
+                'name' => 'John',
+                'age' => 30,
+                'hobbies' => ['reading', 'gaming']
+            ]
+        ];
 
-        $this->assertFalse($json->has('age'));
-        $this->assertFalse($json->has('address.city'));
-        $this->assertTrue($json->has('address.country'));
+        $json = new Json($data);
+        $yaml = $json->toYaml();
+
+        $this->assertStringContainsString('user:', $yaml);
+        $this->assertStringContainsString('name: John', $yaml);
+        $this->assertStringContainsString('age: 30', $yaml);
+        $this->assertStringContainsString('- reading', $yaml);
     }
 
-    public function testValidateSchema(): void
+    /**
+     * @test
+     */
+    public function it_converts_to_csv(): void
     {
-        $json = Json::parse($this->sampleJson);
+        $data = [
+            ['name' => 'John', 'age' => 30],
+            ['name' => 'Jane', 'age' => 25]
+        ];
+
+        $json = new Json($data);
+        $csv = $json->toCsv();
+
+        $this->assertStringContainsString('name,age', $csv);
+        $this->assertStringContainsString('John,30', $csv);
+        $this->assertStringContainsString('Jane,25', $csv);
+    }
+
+    /**
+     * @test
+     */
+    public function it_validates_against_schema(): void
+    {
         $schema = [
             'type' => 'object',
             'properties' => [
                 'name' => ['type' => 'string'],
-                'age' => ['type' => 'integer'],
-                'address' => [
-                    'type' => 'object',
-                    'properties' => [
-                        'city' => ['type' => 'string'],
-                        'country' => ['type' => 'string']
-                    ]
-                ]
+                'age' => ['type' => 'integer']
             ],
             'required' => ['name', 'age']
         ];
 
-        $this->assertTrue($json->validateSchema($schema));
+        $validData = ['name' => 'John', 'age' => 30];
+        $invalidData = ['name' => 'John']; // missing required age
+
+        $json = new Json($validData);
+        $this->assertTrue($json->validate($schema));
+
+        $json->setData($invalidData);
+        $this->assertFalse($json->validate($schema));
     }
 
-    public function testTransformations(): void
+    /**
+     * @test
+     */
+    public function it_throws_exception_for_invalid_json(): void
     {
-        $json = Json::parse($this->sampleJson);
+        $this->expectException(JsonException::class);
+        $json = new Json();
+        $json->decode('{invalid:json}');
+    }
 
-        // Test XML transformation
-        $xml = $json->toXml();
-        $this->assertStringContainsString('<name>John</name>', $xml);
-        $this->assertStringContainsString('<age>30</age>', $xml);
-        $this->assertStringContainsString('<city>New York</city>', $xml);
-        $this->assertStringContainsString('<item>reading</item>', $xml);
+    /**
+     * @test
+     */
+    public function it_flattens_nested_arrays(): void
+    {
+        $data = [
+            'user' => [
+                'name' => 'John',
+                'address' => [
+                    'street' => 'Main St',
+                    'city' => 'New York'
+                ]
+            ]
+        ];
 
-        // Test flattening
+        $json = new Json($data);
         $flattened = $json->flatten();
-        var_dump($flattened->getData()); 
-        $this->assertEquals('New York', $flattened->get('address.city'));
-        $this->assertEquals('USA', $flattened->get('address.country'));
 
-        // Test pretty print
-        $pretty = $json->prettyPrint();
-        $this->assertStringContainsString("\n", $pretty);
-        $this->assertStringContainsString("  ", $pretty);
+        $expected = [
+            'user.name' => 'John',
+            'user.address.street' => 'Main St',
+            'user.address.city' => 'New York'
+        ];
+
+        $this->assertEquals($expected, $flattened);
     }
 
-    public function testJsonPath(): void
+    /**
+     * @test
+     */
+    public function it_unflattens_arrays(): void
     {
-        $json = Json::parse($this->sampleJson);
+        $data = [
+            'user.name' => 'John',
+            'user.address.street' => 'Main St',
+            'user.address.city' => 'New York'
+        ];
+
+        $json = new Json();
+        $unflattened = $json->unflatten($data);
+
+        $expected = [
+            'user' => [
+                'name' => 'John',
+                'address' => [
+                    'street' => 'Main St',
+                    'city' => 'New York'
+                ]
+            ]
+        ];
+
+        $this->assertEquals($expected, $unflattened);
+    }
+
+    /**
+     * @test
+     */
+    public function it_handles_json_pointer_operations(): void
+    {
+        $data = [
+            'foo' => ['bar' => 'baz'],
+            'numbers' => [1, 2, 3]
+        ];
+
+        $json = new Json($data);
+
+        $this->assertEquals('baz', $json->get('/foo/bar'));
+        $this->assertEquals(2, $json->get('/numbers/1'));
+
+        $json->set('/foo/bar', 'qux');
+        $this->assertEquals('qux', $json->get('/foo/bar'));
+
+        $json->remove('/foo/bar');
+        $this->assertNull($json->get('/foo/bar'));
+    }
+
+    /**
+     * @test
+     */
+    public function it_applies_json_patch_operations(): void
+    {
+        $data = [
+            'foo' => 'bar',
+            'numbers' => [1, 2, 3]
+        ];
+
+        $patch = [
+            ['op' => 'replace', 'path' => '/foo', 'value' => 'baz'],
+            ['op' => 'add', 'path' => '/numbers/-', 'value' => 4],
+            ['op' => 'remove', 'path' => '/numbers/0']
+        ];
+
+        $json = new Json($data);
+        $json->patch($patch);
+
+        $this->assertEquals('baz', $json->get('/foo'));
+        $this->assertEquals([2, 3, 4], $json->get('/numbers'));
+    }
+
+    /**
+     * @test
+     */
+    public function it_handles_jsonpath_queries(): void
+    {
+        $data = [
+            'store' => [
+                'books' => [
+                    ['title' => 'Book 1', 'price' => 10],
+                    ['title' => 'Book 2', 'price' => 20]
+                ]
+            ]
+        ];
+
+        $json = new Json($data);
         
-        // Test basic path
-        $result = $json->query('$.name');
-        $this->assertEquals(['John'], $result);
+        $titles = $json->query('$.store.books[*].title');
+        $this->assertEquals(['Book 1', 'Book 2'], $titles);
 
-        // Test nested path
-        $result = $json->query('$.address.city');
-        $this->assertEquals(['New York'], $result);
-
-        // Test array access
-        $result = $json->query('$.hobbies[0]');
-        $this->assertEquals(['reading'], $result);
-
-        // Test wildcard
-        $result = $json->query('$.hobbies[*]');
-        $this->assertEquals(['reading', 'gaming'], $result);
-    }
-
-    public function testDataManipulation(): void
-    {
-        $json = Json::parse('[1, 2, 3, 4, 5]');
-
-        // Test filter
-        $filtered = $json->filter(fn($value) => $value > 3);
-        $this->assertEquals([3 => 4, 4 => 5], $filtered->toArray());
-
-        // Test map
-        $mapped = $json->map(fn($value) => $value * 2);
-        $this->assertEquals([2, 4, 6, 8, 10], $mapped->toArray());
-
-        // Test reduce
-        $sum = $json->reduce(fn($carry, $value) => $carry + $value, 0);
-        $this->assertEquals(15, $sum);
-    }
-
-    public function testArrayOperations(): void
-    {
-        $json = Json::parse('[1, 2, 3, 4, 5]');
-
-        // Test slice
-        $sliced = $json->slice(1, 3);
-        $this->assertEquals([2, 3, 4], $sliced->values());
-
-        // Test first/last
-        $this->assertEquals(1, $json->first());
-        $this->assertEquals(5, $json->last());
-
-        // Test find
-        $found = $json->find(fn($value) => $value > 3);
-        $this->assertEquals([4, 5], $found);
+        $expensiveBooks = $json->query('$.store.books[?(@.price > 15)].title');
+        $this->assertEquals(['Book 2'], $expensiveBooks);
     }
 }

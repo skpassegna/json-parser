@@ -22,8 +22,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v3
+      - uses: actions/checkout@v3
 
       - name: Setup PHP
         uses: shivammathur/setup-php@v2
@@ -35,30 +34,24 @@ jobs:
       - name: Install dependencies
         run: composer install --prefer-dist --no-interaction
 
-      - name: PHP Security Checker
+      - name: Security advisories check
         uses: symfonycorp/security-checker-action@v5
 
-      - name: Run PHPCS Security Audit
-        run: |
-          composer require --dev pheromone/phpcs-security-audit
-          vendor/bin/phpcs --standard=Security src/
-
-      - name: Check for JSON Injection vulnerabilities
-        run: |
-          find src -type f -name "*.php" -exec php -l {} \; | grep -i "json_decode\|json_encode"
-          vendor/bin/phpstan analyse src --level=max --configuration=phpstan.neon
-
-      - name: Run Psalm Security Analysis
+      - name: Run Psalm Security Scan
         run: |
           vendor/bin/psalm --taint-analysis
-          vendor/bin/psalm --security-analysis
+          vendor/bin/psalm --security-analysis --output-format=github
 
-      - name: Run SARIF Security Analysis
+      - name: Run JSON specific security checks
+        run: |
+          # Check for potentially unsafe json_decode usage
+          find src -type f -name "*.php" -exec grep -l "json_decode" {} \; | xargs -I {} php -l {}
+          
+          # Check for proper JSON error handling
+          vendor/bin/phpstan analyse src --level=max --configuration=phpstan.neon \
+            --error-format=github
+
+      - name: SARIF Security Analysis
         uses: github/codeql-action/analyze@v2
         with:
           category: "/language:php"
-
-      - name: Upload SARIF results
-        uses: github/codeql-action/upload-sarif@v2
-        with:
-          sarif_file: results.sarif

@@ -1,0 +1,141 @@
+name: JSON Parser Feature Request
+description: Suggest a new feature for the JSON parser library
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to suggest a new feature!
+        Please ensure your feature request is related to JSON parsing, validation, or transformation capabilities.
+
+  - type: dropdown
+    id: feature-type
+    attributes:
+      label: Feature Category
+      description: What aspect of JSON parsing would this feature enhance?
+      options:
+        - Parsing Capabilities
+        - Validation Rules
+        - Schema Handling
+        - Performance Optimization
+        - Memory Management
+        - Error Handling
+        - Security Enhancement
+        - Unicode/Encoding Support
+        - Output Formatting
+        - Integration Feature
+        - Other
+    validations:
+      required: true
+
+  - type: textarea
+    id: problem-description
+    attributes:
+      label: Problem Statement
+      description: Describe the problem this feature would solve
+      placeholder: |
+        Example: When parsing large JSON files, it would be helpful to...
+        
+        Current workaround (if any):
+        1. ...
+        2. ...
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposed-solution
+    attributes:
+      label: Proposed Solution
+      description: Describe your proposed feature or enhancement
+      placeholder: |
+        Example API usage:
+        ```php
+        $parser = new JsonParser();
+        $parser->setOption('streaming', true);
+        $result = $parser->parseStream($jsonInput);
+        ```
+    validations:
+      required: true
+
+  - type: textarea
+    id: json-example
+    attributes:
+      label: Example JSON
+      description: Provide example JSON that demonstrates the use case
+      render: json
+      placeholder: |
+        {
+          "example": "data",
+          "demonstrates": {
+            "the": "feature"
+          }
+        }
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternative Solutions
+      description: Describe any alternative solutions you've considered
+      placeholder: |
+        1. Using streaming parser instead
+        2. Implementing custom validation
+        3. ...
+
+  - type: dropdown
+    id: impact
+    attributes:
+      label: Impact Assessment
+      description: How would this feature impact existing functionality?
+      options:
+        - No breaking changes
+        - Minor breaking changes
+        - Major breaking changes
+        - Requires new dependency
+        - Performance impact
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: requirements
+    attributes:
+      label: Feature Requirements
+      description: Please confirm these items
+      options:
+        - label: This feature complies with JSON RFC 8259
+          required: true
+        - label: This feature maintains backward compatibility (if applicable)
+          required: true
+        - label: I've checked that this feature doesn't already exist
+          required: true
+        - label: I've considered performance implications
+          required: true
+
+  - type: textarea
+    id: context
+    attributes:
+      label: Additional Context
+      description: Add any other context about the feature request here
+      placeholder: |
+        - Performance expectations
+        - Memory considerations
+        - Security implications
+        - Use case examples
+
+  - type: checkboxes
+    id: contribution
+    attributes:
+      label: Contribution
+      description: Would you be willing to contribute to this feature?
+      options:
+        - label: I'm willing to submit a PR for this feature
+        - label: I'm willing to test this feature
+        - label: I'm willing to document this feature
+
+  - type: checkboxes
+    id: terms
+    attributes:
+      label: Code of Conduct
+      description: By submitting this feature request, you agree to follow our Code of Conduct
+      options:
+        - label: I agree to follow this project's Code of Conduct
+          required: true

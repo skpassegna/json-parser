@@ -6,6 +6,9 @@ namespace Skpassegna\Json\Traits;
 
 use DOMDocument;
 use SimpleXMLElement;
+use Symfony\Component\Yaml\Yaml;
+use Symfony\Component\DomCrawler\Crawler;
+use ColinODell\Json5\Json5;
 use Skpassegna\Json\Exceptions\TransformException;
 
 trait TransformationTrait
@@ -35,22 +38,103 @@ trait TransformationTrait
     }
 
     /**
-     * Convert JSON to YAML.
+     * Convert JSON to YAML using Symfony Yaml component.
      *
-     * @param int $indent
+     * @param int $inline Level where you switch to inline YAML
+     * @param int $indent Number of spaces to use for indentation
      * @return string
      * @throws TransformException
      */
-    public function toYaml(int $indent = 2): string
+    public function toYaml(int $inline = 2, int $indent = 4): string
     {
-        if (!extension_loaded('yaml')) {
-            throw new TransformException('YAML extension is not installed');
-        }
-
         try {
-            return yaml_emit($this->data, YAML_UTF8_ENCODING, YAML_ANY_BREAK);
+            return Yaml::dump($this->data, $inline, $indent);
         } catch (\Exception $e) {
             throw new TransformException("Failed to convert JSON to YAML: {$e->getMessage()}", previous: $e);
+        }
+    }
+
+    /**
+     * Convert HTML to JSON.
+     *
+     * @param string $html
+     * @param array $options
+     * @return static
+     * @throws TransformException
+     */
+    public function fromHtml(string $html, array $options = []): static
+    {
+        try {
+            $crawler = new Crawler($html);
+            $data = $this->parseHtmlNode($crawler, $options);
+            return new static($data);
+        } catch (\Exception $e) {
+            throw new TransformException("Failed to convert HTML to JSON: {$e->getMessage()}", previous: $e);
+        }
+    }
+
+    /**
+     * Parse HTML node recursively.
+     *
+     * @param Crawler $node
+     * @param array $options
+     * @return array
+     */
+    private function parseHtmlNode(Crawler $node, array $options = []): array
+    {
+        $result = [];
+        
+        // Get attributes
+        if ($node->count() && $node->getNode(0)->hasAttributes()) {
+            $result['attributes'] = [];
+            foreach ($node->getNode(0)->attributes as $attr) {
+                $result['attributes'][$attr->name] = $attr->value;
+            }
+        }
+
+        // Get text content
+        $text = trim($node->text());
+        if (!empty($text)) {
+            $result['text'] = $text;
+        }
+
+        // Get children
+        $children = [];
+        $node->children()->each(function (Crawler $child) use (&$children, $options) {
+            $tagName = $child->getNode(0)->tagName;
+            
+            // Skip excluded tags
+            if (isset($options['excludeTags']) && in_array($tagName, $options['excludeTags'])) {
+                return;
+            }
+            
+            $childData = $this->parseHtmlNode($child, $options);
+            if (!empty($childData)) {
+                $children[$tagName][] = $childData;
+            }
+        });
+
+        if (!empty($children)) {
+            $result['children'] = $children;
+        }
+
+        return $result;
+    }
+
+    /**
+     * Parse JSON5 string.
+     *
+     * @param string $json5
+     * @return static
+     * @throws TransformException
+     */
+    public function fromJson5(string $json5): static
+    {
+        try {
+            $data = Json5::decode($json5);
+            return new static($data);
+        } catch (\Exception $e) {
+            throw new TransformException("Failed to parse JSON5: {$e->getMessage()}", previous: $e);
         }
     }
 
@@ -216,7 +300,6 @@ trait TransformationTrait
     public function flatten(): static
     {
         $flattened = $this->flattenData((array)$this->data);
-        var_dump($flattened); // Debugging statement to inspect flattened data
         $class = get_class($this);
         return new $class($flattened);
     }

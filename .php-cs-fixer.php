@@ -1,7 +1,6 @@
 <?php
 
 use Symfony\Component\Finder\Finder;
-use PhpCsFixer\Config;
 
 include_once __DIR__ . '/vendor/autoload.php';
 
@@ -14,7 +13,7 @@ $finder = Finder::create()
     ->ignoreDotFiles(true)
     ->ignoreVCS(true);
 
-$config = new Config();
+$config = new PhpCsFixer\Config();
 
 return $config
     ->setRules([

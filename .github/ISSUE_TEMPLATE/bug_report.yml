@@ -1,0 +1,168 @@
+name: JSON Parser Bug Report
+description: Report a bug in the JSON parser library
+labels: ["bug", "triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to fill out this bug report!
+        Before submitting, please check if a similar issue already exists.
+        
+        For JSON parsing issues, please ensure you've:
+        1. Validated your JSON using a tool like JSONLint
+        2. Checked for proper UTF-8 encoding
+        3. Verified memory limits for large JSON files
+
+  - type: input
+    id: php-version
+    attributes:
+      label: PHP Version
+      description: What version of PHP are you running?
+      placeholder: "8.2.0"
+    validations:
+      required: true
+
+  - type: input
+    id: package-version
+    attributes:
+      label: Package Version
+      description: What version of our JSON parser are you using?
+      placeholder: "1.0.0"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: issue-type
+    attributes:
+      label: Type of Issue
+      description: What aspect of JSON parsing is affected?
+      options:
+        - Parsing Error
+        - Validation Error
+        - Schema Validation
+        - Performance Issue
+        - Memory Issue
+        - UTF-8/Unicode Issue
+        - Security Concern
+        - Other
+    validations:
+      required: true
+
+  - type: dropdown
+    id: operating-system
+    attributes:
+      label: Operating System
+      options:
+        - Linux
+        - Windows
+        - macOS
+        - Other
+    validations:
+      required: true
+
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened?
+      description: Describe the issue and what you expected to happen
+      placeholder: "Describe the parsing error or unexpected behavior"
+    validations:
+      required: true
+
+  - type: textarea
+    id: json-input
+    attributes:
+      label: JSON Input
+      description: Provide the JSON input that causes the issue (sanitize any sensitive data)
+      render: json
+      placeholder: |
+        {
+          "example": "value",
+          "nested": {
+            "array": [1, 2, 3]
+          }
+        }
+    validations:
+      required: true
+
+  - type: input
+    id: json-size
+    attributes:
+      label: JSON Size
+      description: Size of the JSON input (if relevant)
+      placeholder: "e.g., 2MB"
+
+  - type: textarea
+    id: code-example
+    attributes:
+      label: Code Example
+      description: Provide the PHP code that demonstrates the issue
+      render: php
+      placeholder: |
+        $parser = new JsonParser();
+        try {
+            $result = $parser->parse($jsonInput);
+        } catch (JsonException $e) {
+            // Error handling
+        }
+    validations:
+      required: true
+
+  - type: textarea
+    id: error-output
+    attributes:
+      label: Error Output
+      description: Include any error messages or stack traces
+      render: shell
+
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Steps to Reproduce
+      value: |
+        1. Initialize parser with...
+        2. Parse JSON input...
+        3. ...
+    validations:
+      required: true
+
+  - type: dropdown
+    id: frequency
+    attributes:
+      label: How often does this occur?
+      options:
+        - Always
+        - Sometimes
+        - Rarely
+        - Only with specific JSON input
+    validations:
+      required: true
+
+  - type: input
+    id: memory-limit
+    attributes:
+      label: PHP Memory Limit
+      description: Your PHP memory_limit setting
+      placeholder: "128M"
+
+  - type: checkboxes
+    id: validations
+    attributes:
+      label: Validation
+      description: Please confirm these items
+      options:
+        - label: The JSON input is valid according to RFC 8259
+          required: true
+        - label: I have tested with the latest version of the library
+          required: true
+        - label: I have checked for similar issues
+          required: true
+
+  - type: checkboxes
+    id: terms
+    attributes:
+      label: Code of Conduct
+      description: By submitting this issue, you agree to follow our Code of Conduct
+      options:
+        - label: I agree to follow this project's Code of Conduct
+          required: true
