@@ -36,15 +36,13 @@ jobs:
 
       - name: Generate code coverage report
         run: |
-          XDEBUG_MODE=coverage vendor/bin/phpunit --coverage-clover=coverage.xml
+          XDEBUG_MODE=coverage vendor/bin/phpunit --log-junit junit.xml
 
-      - name: Upload code coverage to Codecov
-        uses: codecov/codecov-action@v2
+      - name: Upload test results to Codecov
+        if: ${{ !cancelled() }}
+        uses: codecov/test-results-action@v1
         with:
-          files: coverage.xml
-          flags: unittests
-          name: codecov-umbrella
-          fail_ci_if_error: true
+          token: ${{ secrets.CODECOV_TOKEN }}
 
   static-analysis:
     runs-on: ubuntu-latest
