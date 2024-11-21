@@ -2,7 +2,9 @@
 
 [![Latest Version on Packagist](https://img.shields.io/packagist/v/skpassegna/json-parser.svg?style=flat-square)](https://packagist.org/packages/skpassegna/json-parser)
 [![Total Downloads](https://img.shields.io/packagist/dt/skpassegna/json-parser.svg?style=flat-square)](https://packagist.org/packages/skpassegna/json-parser)
-[![Tests](https://github.com/skpassegna/json-parser/actions/workflows/tests.yml/badge.svg)](https://github.com/skpassegna/json-parser/actions/workflows/tests.yml)
+
+[![codecov](https://codecov.io/gh/skpassegna/json-parser/graph/badge.svg?token=NSLENRDVQ1)](https://codecov.io/gh/skpassegna/json-parser)
+
 [![PHP Version](https://img.shields.io/packagist/php-v/skpassegna/json-parser.svg?style=flat-square)](https://packagist.org/packages/skpassegna/json-parser)
 [![License](https://img.shields.io/packagist/l/skpassegna/json-parser.svg?style=flat-square)](https://packagist.org/packages/skpassegna/json-parser)
 
