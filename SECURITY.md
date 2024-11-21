@@ -11,7 +11,7 @@ We release patches for security vulnerabilities for the following versions:
 
 ## Reporting a Vulnerability
 
-If you discover a security vulnerability within this package, please send an email to security@example.com. All security vulnerabilities will be promptly addressed.
+If you discover a security vulnerability within this package, please send an email to [security@skpassegna.com](mailto:security@skpassegna.com). All security vulnerabilities will be promptly addressed.
 
 Please do not report security vulnerabilities through public GitHub issues.
 
@@ -34,6 +34,17 @@ Please include the following in your report:
 - Suggested fix (if possible)
 - Your contact information
 
+### Security Tools
+
+We use the following tools for security analysis:
+- PHPStan for static analysis
+- Composer Security Checker for dependency vulnerabilities
+
+### Dependencies
+
+- Regularly update dependencies to mitigate known vulnerabilities
+- Use `composer outdated` to check for outdated packages
+
 ## Security Best Practices
 
 When using this library, consider the following security best practices:
@@ -43,6 +54,11 @@ When using this library, consider the following security best practices:
 3. Implement proper error handling
 4. Keep the library updated to the latest version
 5. Follow secure coding practices in your implementation
+
+## Security Resources
+
+- [OWASP JSON Security Guidelines](https://owasp.org/www-community/attacks/JSON_Injection)
+- [PHP Secure Coding Guidelines](https://phptherightway.com/#security)
 
 ## Security Updates
 
