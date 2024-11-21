@@ -12,13 +12,28 @@ use Skpassegna\Json\Schema\Validator;
 use Skpassegna\Json\Traits\DataAccessTrait;
 use Skpassegna\Json\Traits\TransformationTrait;
 use Skpassegna\Json\Utils\JsonPath;
+use Skpassegna\Json\Utils\JsonPointer;
+use Skpassegna\Json\Utils\JsonMerge;
 
 class Json implements JsonInterface
 {
     use DataAccessTrait;
     use TransformationTrait;
 
-    private mixed $data;
+    /**
+     * @var array|object
+     */
+    protected array|object $data = [];
+
+    /**
+     * Constructor.
+     *
+     * @param array|object $data
+     */
+    public function __construct(array|object $data = [])
+    {
+        $this->data = $data;
+    }
 
     /**
      * Create a new JSON instance from a string, array, or object.
@@ -27,7 +42,7 @@ class Json implements JsonInterface
      * @param array<string, mixed> $options Parsing options
      * @throws ParseException If the input cannot be parsed
      */
-    public static function parse(string|array|object $input, array $options = []): self
+    public static function parse(string|array|object $input, array $options = []): static
     {
         $instance = new self();
 
@@ -52,7 +67,7 @@ class Json implements JsonInterface
     /**
      * Create a new empty JSON instance.
      */
-    public static function create(): self
+    public static function create(): static
     {
         return new self();
     }
@@ -98,9 +113,9 @@ class Json implements JsonInterface
      *
      * @param string $path The path where to set the value (dot notation)
      * @param mixed $value The value to set
-     * @return self
+     * @return static
      */
-    public function set(string $path, mixed $value): self
+    public function set(string $path, mixed $value): static
     {
         $current = &$this->data;
         $segments = explode('.', $path);
@@ -119,38 +134,61 @@ class Json implements JsonInterface
     }
 
     /**
-     * Remove a value at a specific path.
+     * Remove a value at the specified path.
      *
-     * @param string $path The path to remove (dot notation)
-     * @return self
+     * @param string $path
+     * @return $this
      */
-    public function remove(string $path): self
+    public function remove(string $path): static
     {
-        $current = &$this->data;
         $segments = explode('.', $path);
-        $last = array_pop($segments);
+        $current = &$this->data;
+        $lastSegment = array_pop($segments);
 
         foreach ($segments as $segment) {
-            if (!isset($current[$segment]) || !is_array($current[$segment])) {
+            if (!isset($current[$segment]) || (!is_array($current[$segment]) && !is_object($current[$segment]))) {
                 return $this;
             }
             $current = &$current[$segment];
         }
 
-        unset($current[$last]);
+        if (is_array($current)) {
+            unset($current[$lastSegment]);
+        } elseif (is_object($current)) {
+            unset($current->$lastSegment);
+        }
 
         return $this;
     }
 
     /**
-     * Check if a path exists in the JSON.
+     * Check if a path exists in the JSON data.
      *
-     * @param string $path The path to check (dot notation)
-     * @return bool True if the path exists, false otherwise
+     * @param string $path
+     * @return bool
      */
     public function has(string $path): bool
     {
-        return $this->get($path, new \stdClass()) !== new \stdClass();
+        $segments = explode('.', $path);
+        $current = $this->data;
+
+        foreach ($segments as $segment) {
+            if (is_array($current)) {
+                if (!array_key_exists($segment, $current)) {
+                    return false;
+                }
+                $current = $current[$segment];
+            } elseif (is_object($current)) {
+                if (!property_exists($current, $segment)) {
+                    return false;
+                }
+                $current = $current->$segment;
+            } else {
+                return false;
+            }
+        }
+
+        return true;
     }
 
     /**
@@ -192,13 +230,13 @@ class Json implements JsonInterface
     /**
      * Merge another JSON object into this one.
      *
-     * @param Json|array|object $source The source to merge from
+     * @param JsonInterface|array $source The source to merge from
      * @param bool $recursive Whether to merge recursively
-     * @return self
+     * @return static
      */
-    public function merge(Json|array|object $source, bool $recursive = true): self
+    public function merge(JsonInterface|array $source, bool $recursive = true): static
     {
-        $sourceData = $source instanceof Json ? $source->getData() : $source;
+        $sourceData = $source instanceof JsonInterface ? $source->getData() : $source;
         
         if ($recursive) {
             $this->data = $this->mergeRecursive($this->data, $sourceData);
@@ -227,5 +265,44 @@ class Json implements JsonInterface
         }
 
         return $target;
+    }
+
+    /**
+     * Get a value using a JSON Pointer.
+     *
+     * @param string $pointer
+     * @return mixed
+     * @throws PathException
+     */
+    public function getPointer(string $pointer): mixed
+    {
+        return JsonPointer::get($this->data, $pointer);
+    }
+
+    /**
+     * Set a value using a JSON Pointer.
+     *
+     * @param string $pointer
+     * @param mixed $value
+     * @return $this
+     * @throws PathException
+     */
+    public function setPointer(string $pointer, mixed $value): static
+    {
+        JsonPointer::set($this->data, $pointer, $value);
+        return $this;
+    }
+
+    /**
+     * Merge another JSON structure into this one.
+     *
+     * @param mixed $source
+     * @param string $strategy
+     * @return $this
+     */
+    public function mergeJson(mixed $source, string $strategy = JsonMerge::MERGE_RECURSIVE): static
+    {
+        $this->data = JsonMerge::merge($this->data, $source, $strategy);
+        return $this;
     }
 }

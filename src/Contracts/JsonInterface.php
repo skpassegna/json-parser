@@ -91,9 +91,9 @@ interface JsonInterface
     /**
      * Merge with another JSON.
      *
-     * @param self|array|object $source
+     * @param self|array $source
      * @param bool $recursive
      * @return static
      */
-    public function merge(self|array|object $source, bool $recursive = true): static;
+    public function merge(self|array $source, bool $recursive = true): static;
 }

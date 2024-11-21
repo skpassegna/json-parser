@@ -1,5 +1,5 @@
 {
-    "name": "skpassegna/json",
+    "name": "skpassegna/json-parser",
     "description": "A comprehensive and user-friendly JSON management library for PHP",
     "type": "library",
     "license": "MIT",
@@ -14,8 +14,8 @@
     ],
     "authors": [
         {
-            "name": "SK Passegna",
-            "email": "author@example.com"
+            "name": "Samuel Kpassegna",
+            "email": "main@skassegna.eu.org"
         }
     ],
     "require": {

@@ -1,10 +1,10 @@
 # PHP JSON Management Library
 
-[![Latest Version on Packagist](https://img.shields.io/packagist/v/skpassegna/json.svg?style=flat-square)](https://packagist.org/packages/skpassegna/json)
-[![Total Downloads](https://img.shields.io/packagist/dt/skpassegna/json.svg?style=flat-square)](https://packagist.org/packages/skpassegna/json)
-[![Tests](https://github.com/skpassegna/json/actions/workflows/tests.yml/badge.svg)](https://github.com/skpassegna/json/actions/workflows/tests.yml)
-[![PHP Version](https://img.shields.io/packagist/php-v/skpassegna/json.svg?style=flat-square)](https://packagist.org/packages/skpassegna/json)
-[![License](https://img.shields.io/packagist/l/skpassegna/json.svg?style=flat-square)](https://packagist.org/packages/skpassegna/json)
+[![Latest Version on Packagist](https://img.shields.io/packagist/v/skpassegna/json-parser.svg?style=flat-square)](https://packagist.org/packages/skpassegna/json-parser)
+[![Total Downloads](https://img.shields.io/packagist/dt/skpassegna/json-parser.svg?style=flat-square)](https://packagist.org/packages/skpassegna/json-parser)
+[![Tests](https://github.com/skpassegna/json-parser/actions/workflows/tests.yml/badge.svg)](https://github.com/skpassegna/json-parser/actions/workflows/tests.yml)
+[![PHP Version](https://img.shields.io/packagist/php-v/skpassegna/json-parser.svg?style=flat-square)](https://packagist.org/packages/skpassegna/json-parser)
+[![License](https://img.shields.io/packagist/l/skpassegna/json-parser.svg?style=flat-square)](https://packagist.org/packages/skpassegna/json-parser)
 
 A powerful, intuitive, and comprehensive JSON management library for PHP 8+. This library provides a fluent interface for working with JSON data, offering extensive functionality for parsing, manipulating, validating, and transforming JSON.
 
@@ -36,7 +36,7 @@ A powerful, intuitive, and comprehensive JSON management library for PHP 8+. Thi
 Install the package via Composer:
 
 ```bash
-composer require skpassegna/json
+composer require skpassegna/json-parser
 ```
 
 ## Basic Usage

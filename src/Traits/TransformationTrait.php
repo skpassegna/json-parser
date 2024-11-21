@@ -120,24 +120,29 @@ trait TransformationTrait
     /**
      * Convert array to XML helper.
      *
-     * @param array|string|int|float|bool|null $data
-     * @param SimpleXMLElement $xml
+     * @param mixed $data
+     * @param SimpleXMLElement &$xml
      * @return void
      */
     private function arrayToXml(mixed $data, SimpleXMLElement &$xml): void
     {
-        foreach ($data as $key => $value) {
-            if (is_array($value)) {
-                if (is_numeric($key)) {
-                    $key = 'item' . $key;
-                }
-                $subnode = $xml->addChild($key);
-                $this->arrayToXml($value, $subnode);
+        foreach ((array)$data as $key => $value) {
+            if (is_int($key)) {
+                $key = 'item';
             } else {
-                if (is_numeric($key)) {
-                    $key = 'item' . $key;
+                $key = preg_replace('/[^a-z0-9_-]/i', '', (string)$key) ?: 'item';
+            }
+            
+            if (is_array($value) || is_object($value)) {
+                $node = $xml->addChild($key);
+                $this->arrayToXml($value, $node);
+            } else {
+                if (is_bool($value)) {
+                    $value = $value ? 'true' : 'false';
+                } elseif ($value === null) {
+                    $value = '';
                 }
-                $xml->addChild($key, htmlspecialchars((string)$value));
+                $xml->addChild($key, htmlspecialchars((string)$value, ENT_XML1 | ENT_QUOTES, 'UTF-8'));
             }
         }
     }
@@ -177,41 +182,43 @@ trait TransformationTrait
     }
 
     /**
-     * Flatten a nested JSON structure.
+     * Flattens a nested structure into a single level using dot notation.
      *
-     * @param string $delimiter
-     * @return static
-     */
-    public function flatten(string $delimiter = '.'): static
-    {
-        $new = clone $this;
-        $new->data = $this->flattenArray($this->data, '', $delimiter);
-        return $new;
-    }
-
-    /**
-     * Flatten array helper.
-     *
-     * @param array $data
+     * @param array|object $data
      * @param string $prefix
-     * @param string $delimiter
      * @return array
      */
-    private function flattenArray(array $data, string $prefix = '', string $delimiter = '.'): array
+    private function flattenData(array|object $data, string $prefix = ''): array
     {
         $result = [];
 
         foreach ($data as $key => $value) {
-            $newKey = $prefix ? $prefix . $delimiter . $key : $key;
+            $newKey = $prefix ? "{$prefix}.{$key}" : $key;
 
-            if (is_array($value) && !empty($value)) {
-                $result = array_merge($result, $this->flattenArray($value, $newKey, $delimiter));
+            if (is_array($value) || is_object($value)) {
+                $result = array_merge(
+                    $result,
+                    $this->flattenData((array)$value, $newKey)
+                );
             } else {
                 $result[$newKey] = $value;
             }
         }
 
         return $result;
+    }
+
+    /**
+     * Flattens the JSON structure into a single level using dot notation.
+     *
+     * @return static
+     */
+    public function flatten(): static
+    {
+        $flattened = $this->flattenData((array)$this->data);
+        var_dump($flattened); // Debugging statement to inspect flattened data
+        $class = get_class($this);
+        return new $class($flattened);
     }
 
     /**

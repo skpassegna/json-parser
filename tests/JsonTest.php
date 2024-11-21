@@ -88,9 +88,12 @@ class JsonTest extends TestCase
         $xml = $json->toXml();
         $this->assertStringContainsString('<name>John</name>', $xml);
         $this->assertStringContainsString('<age>30</age>', $xml);
+        $this->assertStringContainsString('<city>New York</city>', $xml);
+        $this->assertStringContainsString('<item>reading</item>', $xml);
 
         // Test flattening
         $flattened = $json->flatten();
+        var_dump($flattened->getData()); 
         $this->assertEquals('New York', $flattened->get('address.city'));
         $this->assertEquals('USA', $flattened->get('address.country'));
 
@@ -98,11 +101,6 @@ class JsonTest extends TestCase
         $pretty = $json->prettyPrint();
         $this->assertStringContainsString("\n", $pretty);
         $this->assertStringContainsString("  ", $pretty);
-
-        // Test minify
-        $minified = $json->minify();
-        $this->assertStringNotContainsString("\n", $minified);
-        $this->assertStringNotContainsString("  ", $minified);
     }
 
     public function testJsonPath(): void

@@ -240,4 +240,84 @@ trait DataAccessTrait
 
         return $result;
     }
+
+    /**
+     * Get a value at the specified path.
+     *
+     * @param string $path
+     * @param mixed $default
+     * @return mixed
+     */
+    public function get(string $path, mixed $default = null): mixed
+    {
+        if (empty($path)) {
+            return $this->data;
+        }
+
+        // Ensure data is an array for traversal
+        $current = (array)$this->data;
+
+        $segments = explode('.', $path);
+
+        foreach ($segments as $segment) {
+            if (is_array($current) && array_key_exists($segment, $current)) {
+                $current = $current[$segment];
+            } else {
+                return $default; // Return default if path does not exist
+            }
+        }
+
+        return $current;
+    }
+
+    /**
+     * Set a value at the specified path.
+     *
+     * @param string $path
+     * @param mixed $value
+     * @return $this
+     */
+    public function set(string $path, mixed $value): static
+    {
+        $segments = explode('.', $path);
+        $current = &$this->data;
+
+        foreach ($segments as $i => $segment) {
+            if ($i === count($segments) - 1) {
+                if (is_array($current)) {
+                    $current[$segment] = $value;
+                } elseif (is_object($current)) {
+                    $current->$segment = $value;
+                } else {
+                    if (is_numeric($segment)) {
+                        $current = [$segment => $value];
+                    } else {
+                        $current = (object)[$segment => $value];
+                    }
+                }
+            } else {
+                if (is_array($current)) {
+                    if (!isset($current[$segment]) || (!is_array($current[$segment]) && !is_object($current[$segment]))) {
+                        $current[$segment] = [];
+                    }
+                    $current = &$current[$segment];
+                } elseif (is_object($current)) {
+                    if (!isset($current->$segment) || (!is_array($current->$segment) && !is_object($current->$segment))) {
+                        $current->$segment = new \stdClass();
+                    }
+                    $current = &$current->$segment;
+                } else {
+                    if (is_numeric($segment)) {
+                        $current = [$segment => []];
+                        $current = &$current[$segment];
+                    } else {
+                        $current = (object)[$segment => new \stdClass()];
+                        $current = &$current->$segment;
+                    }
+                }
+            }
+        }
+
+        return $this;
+    }
 }
