@@ -51,7 +51,7 @@ final class EventDispatcher implements EventDispatcherInterface
         return $event;
     }
 
-    public function subscribe(string $eventType, callable $listener, int $priority = 0): void
+    public function subscribe(string $eventType, callable $listener, int $priority = 0): self
     {
         if (!isset($this->listeners[$eventType])) {
             $this->listeners[$eventType] = [];
@@ -62,12 +62,14 @@ final class EventDispatcher implements EventDispatcherInterface
         $this->listenerCounts[$eventType]++;
 
         krsort($this->listeners[$eventType], SORT_NUMERIC);
+
+        return $this;
     }
 
-    public function unsubscribe(string $eventType, callable $listener): bool
+    public function unsubscribe(string $eventType, callable $listener): self
     {
         if (!isset($this->listeners[$eventType])) {
-            return false;
+            return $this;
         }
 
         foreach ($this->listeners[$eventType] as $priority => $existingListener) {
@@ -80,11 +82,11 @@ final class EventDispatcher implements EventDispatcherInterface
                     unset($this->listenerCounts[$eventType]);
                 }
 
-                return true;
+                break;
             }
         }
 
-        return false;
+        return $this;
     }
 
     public function getListeners(string $eventType): array
@@ -97,24 +99,22 @@ final class EventDispatcher implements EventDispatcherInterface
         return isset($this->listeners[$eventType]) && !empty($this->listeners[$eventType]);
     }
 
-    public function clearListeners(string $eventType = ''): int
+    public function clearListeners(?string $eventType = null): self
     {
-        if ($eventType === '') {
-            $count = array_sum($this->listenerCounts);
+        if ($eventType === null) {
             $this->listeners = [];
             $this->listenerCounts = [];
-            return $count;
+            return $this;
         }
 
         if (!isset($this->listeners[$eventType])) {
-            return 0;
+            return $this;
         }
 
-        $count = $this->listenerCounts[$eventType] ?? 0;
         unset($this->listeners[$eventType]);
         unset($this->listenerCounts[$eventType]);
 
-        return $count;
+        return $this;
     }
 
     public function getEventTypes(): array

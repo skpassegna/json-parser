@@ -266,23 +266,24 @@ trait TransformationTrait
     }
 
     /**
-     * Flattens a nested structure into a single level using dot notation.
+     * Flattens a nested structure into a single level using a delimiter.
      *
      * @param array|object $data
      * @param string $prefix
+     * @param string $delimiter
      * @return array
      */
-    private function flattenData(array|object $data, string $prefix = ''): array
+    private function flattenData(array|object $data, string $prefix = '', string $delimiter = '.'): array
     {
         $result = [];
 
         foreach ($data as $key => $value) {
-            $newKey = $prefix ? "{$prefix}.{$key}" : $key;
+            $newKey = $prefix ? "{$prefix}{$delimiter}{$key}" : $key;
 
             if (is_array($value) || is_object($value)) {
                 $result = array_merge(
                     $result,
-                    $this->flattenData((array)$value, $newKey)
+                    $this->flattenData((array)$value, $newKey, $delimiter)
                 );
             } else {
                 $result[$newKey] = $value;
@@ -293,13 +294,14 @@ trait TransformationTrait
     }
 
     /**
-     * Flattens the JSON structure into a single level using dot notation.
+     * Flattens the JSON structure into a single level using a delimiter.
      *
+     * @param string $delimiter The delimiter to use for flattened keys (default: '.')
      * @return static
      */
-    public function flatten(): static
+    public function flatten(string $delimiter = '.'): static
     {
-        $flattened = $this->flattenData((array)$this->data);
+        $flattened = $this->flattenData((array)$this->data, '', $delimiter);
         $class = get_class($this);
         $instance = new $class($flattened);
         if (property_exists($instance, 'mutabilityMode')) {
