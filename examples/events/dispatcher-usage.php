@@ -13,6 +13,7 @@ require_once __DIR__ . '/../../vendor/autoload.php';
 
 use Skpassegna\Json\Json;
 use Skpassegna\Json\Enums\EventType;
+use Skpassegna\Json\Enums\DiffMergeStrategy;
 
 echo "=== Event System and Dispatcher ===\n\n";
 
@@ -24,7 +25,7 @@ $dispatcher = $json->getDispatcher();
 
 $dispatcher->subscribe(EventType::BEFORE_MERGE->value, function ($event) {
     echo "   [Event] BEFORE_MERGE triggered\n";
-    echo "   [Event] Current data: " . json_encode($event->getPayload()['operand1'] ?? $event->getData()) . "\n";
+    echo "   [Event] Current data: " . json_encode($event->getData()) . "\n";
 });
 
 $dispatcher->subscribe(EventType::AFTER_MERGE->value, function ($event) {
@@ -33,7 +34,7 @@ $dispatcher->subscribe(EventType::AFTER_MERGE->value, function ($event) {
 });
 
 echo "   Performing merge operation...\n";
-$json->merge(['city' => 'New York']);
+$json->mergeWithStrategy(['city' => 'New York'], DiffMergeStrategy::MERGE_RECURSIVE);
 echo "\n";
 
 // Example 2: Priority-based event listeners
@@ -54,7 +55,7 @@ $dispatcher2->subscribe(EventType::BEFORE_MERGE->value, function ($event) {
 }, 10);
 
 echo "   Performing merge (handlers execute by priority)...\n";
-$json2->merge(['extra' => 'data']);
+$json2->mergeWithStrategy(['extra' => 'data'], DiffMergeStrategy::MERGE_RECURSIVE);
 echo "\n";
 
 // Example 3: Reflection with listener information
@@ -102,7 +103,7 @@ $dispatcher4->subscribe(EventType::BEFORE_MERGE->value, function ($event) use (&
 });
 
 echo "   Performing merge with propagation stopping...\n";
-$json4->merge(['new' => 'data']);
+$json4->mergeWithStrategy(['new' => 'data'], DiffMergeStrategy::MERGE_RECURSIVE);
 echo "   Total handlers executed: $handlerCount\n\n";
 
 echo "Event system examples completed!\n";
