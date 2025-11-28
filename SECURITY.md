@@ -10,6 +10,6 @@
 
 If you discover a security vulnerability within this project, please do not open an issue publicly.
 
-Please email Samuel Kpassegna at **main@skassegna.eu.org** or **online@skpassegna.me**.
+Please email Samuel Kpassegna at **main@skpassegna.eu.org** or **online@skpassegna.me**.
 
 All security vulnerabilities will be promptly addressed.
