@@ -301,7 +301,11 @@ trait TransformationTrait
     {
         $flattened = $this->flattenData((array)$this->data);
         $class = get_class($this);
-        return new $class($flattened);
+        $instance = new $class($flattened);
+        if (property_exists($instance, 'mutabilityMode')) {
+            $instance->mutabilityMode = \Skpassegna\Json\JsonMutabilityMode::MUTABLE;
+        }
+        return $instance;
     }
 
     /**
@@ -313,7 +317,11 @@ trait TransformationTrait
     public function unflatten(string $delimiter = '.'): static
     {
         if (!is_array($this->data)) {
-            return clone $this;
+            $clone = clone $this;
+            if (property_exists($clone, 'mutabilityMode')) {
+                $clone->mutabilityMode = \Skpassegna\Json\JsonMutabilityMode::MUTABLE;
+            }
+            return $clone;
         }
 
         $new = clone $this;

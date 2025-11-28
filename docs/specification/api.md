@@ -2199,4 +2199,296 @@ $filtered = $json->filter(fn($v) => $v > 10);
 
 ---
 
+## Immutability & PHP Ergonomics Upgrade (Delta 0)
+
+### Overview
+
+The `Json` class has been upgraded with full PHP object ergonomics, combining:
+- **SPL Interfaces**: `ArrayAccess`, `IteratorAggregate`, `Countable`, `Stringable`
+- **Magic Methods**: `__get`, `__set`, `__isset`, `__unset`, `__invoke`, `__toString`, `__call`, `__callStatic`, `__debugInfo`, `__clone`, `__serialize`, `__unserialize`
+- **Immutability Mode**: Optional toggle between mutable and immutable semantics
+- **Protected Helpers**: `guardMutable()` and `assertKeyExists()` in `DataAccessTrait`
+
+### JsonMutabilityMode Enum
+
+**Namespace**: `Skpassegna\Json\JsonMutabilityMode`
+
+```php
+enum JsonMutabilityMode
+{
+    case MUTABLE;
+    case IMMUTABLE;
+
+    public function isMutable(): bool;
+    public function isImmutable(): bool;
+}
+```
+
+**Purpose**: Controls whether mutations are allowed on `Json` instances. When `IMMUTABLE`, all write operations throw `RuntimeException`.
+
+### New Json Class Methods
+
+#### Mutability Control
+
+```php
+public function setMutabilityMode(JsonMutabilityMode $mode): static
+```
+Sets the mutability mode. Returns `$this` for chaining. Chainable.
+
+```php
+public function getMutabilityMode(): JsonMutabilityMode
+```
+Returns current mutability mode.
+
+```php
+public function isMutable(): bool
+public function isImmutable(): bool
+```
+Check mutability status.
+
+#### ArrayAccess Interface
+
+Allows bracket notation access:
+
+```php
+public function offsetExists(mixed $offset): bool
+public function offsetGet(mixed $offset): mixed
+public function offsetSet(mixed $offset, mixed $value): void
+public function offsetUnset(mixed $offset): void
+```
+
+**Example**:
+```php
+$json['name'] = 'John';
+echo $json['name'];      // 'John'
+unset($json['age']);
+```
+
+**Immutability**: `offsetSet()` and `offsetUnset()` call `guardMutable()`.
+
+#### IteratorAggregate Interface
+
+```php
+public function getIterator(): Traversable
+```
+
+Returns `ArrayIterator` over data, enabling foreach loops.
+
+**Example**:
+```php
+foreach ($json as $key => $value) {
+    echo "{$key}: {$value}";
+}
+```
+
+#### Countable Interface
+
+```php
+public function count(): int
+```
+
+Counts array elements or object properties.
+
+**Example**:
+```php
+$count = count($json);
+```
+
+#### Stringable Interface
+
+```php
+public function __toString(): string
+```
+
+Delegates to `toString()` for JSON serialization.
+
+**Example**:
+```php
+echo $json;  // JSON string output
+```
+
+#### Magic Methods
+
+**`__get(string $name): mixed`**
+
+Delegates to `get($name)`.
+
+```php
+echo $json->name;  // Same as $json->get('name')
+```
+
+**`__set(string $name, mixed $value): void`**
+
+Delegates to `set($name, $value)`. Respects immutability.
+
+```php
+$json->name = 'John';  // Same as $json->set('name', 'John')
+```
+
+**`__isset(string $name): bool`**
+
+Delegates to `has($name)`.
+
+```php
+if (isset($json->name)) { ... }
+```
+
+**`__unset(string $name): void`**
+
+Delegates to `remove($name)`. Respects immutability.
+
+```php
+unset($json->name);
+```
+
+**`__invoke(?string $path = null): mixed`**
+
+Allows calling instance as function. No path returns data; with path returns value at path.
+
+```php
+$json('user.name');   // Get nested value
+$json();              // Get entire data
+```
+
+**`__call(string $method, array $arguments): never`**
+
+Throws `RuntimeException` for undefined methods.
+
+**`__callStatic(string $method, array $arguments): never`**
+
+Throws `RuntimeException` for undefined static methods.
+
+**`__debugInfo(): array`**
+
+Returns debug information including data and mutability mode.
+
+```php
+var_dump($json);  // Shows data and mutability mode
+```
+
+**`__clone(): void`**
+
+Deep clones data and resets mutability mode to `MUTABLE`. Objects within array are cloned; primitive values are copied.
+
+```php
+$immutable = $json->setMutabilityMode(JsonMutabilityMode::IMMUTABLE);
+$mutable = clone $immutable;  // Mutable copy
+```
+
+**`__serialize(): array`** / **`__unserialize(array $data): void`**
+
+Serializes and unserializes while preserving mutability mode.
+
+```php
+$serialized = serialize($json);
+$restored = unserialize($serialized);
+```
+
+### Protected Trait Helpers
+
+#### DataAccessTrait::guardMutable()
+
+```php
+protected function guardMutable(): void
+```
+
+**Throws**: `RuntimeException` if instance is immutable.
+
+**Usage**: Called by all mutating methods (`set()`, `remove()`, `merge()`, `setPointer()`, `mergeJson()`).
+
+#### DataAccessTrait::assertKeyExists()
+
+```php
+protected function assertKeyExists(string|int $key): void
+```
+
+**Throws**: `RuntimeException` if key does not exist in array/object.
+
+**Usage**: Can be used in custom operations to validate key presence.
+
+### Mutability Semantics
+
+#### Mutable Mode (Default)
+
+```php
+$json = new Json(['name' => 'John']);
+$json->set('age', 30);        // Modifies in place
+$json->merge(['email' => 'john@example.com']);  // Modifies in place
+```
+
+All methods return `$this`, enabling method chaining.
+
+#### Immutable Mode
+
+```php
+$immutable = new Json(['name' => 'John'], JsonMutabilityMode::IMMUTABLE);
+$immutable->set('age', 30);    // Throws RuntimeException
+$immutable->merge(['email' => '...']);  // Throws RuntimeException
+```
+
+Read-only methods (get, has, query, keys, values, etc.) work normally.
+
+#### Cloning & Mutability
+
+```php
+$immutable = $json->setMutabilityMode(JsonMutabilityMode::IMMUTABLE);
+$mutable = clone $immutable;   // New instance, MUTABLE mode
+$mutable->set('age', 30);      // Succeeds
+```
+
+This allows safe "modification by copy" pattern:
+
+```php
+$updated = clone $json->setMutabilityMode(JsonMutabilityMode::IMMUTABLE);
+$updated->setMutabilityMode(JsonMutabilityMode::MUTABLE);
+$updated->set('age', 30);
+```
+
+### Integration with Existing Methods
+
+All methods that create new instances via `clone` reset mutability mode to `MUTABLE`:
+- `filter()`
+- `map()`
+- `sort()`
+- `slice()`
+- `flatten()`
+- `unflatten()`
+- `transform()`
+
+This ensures new copies are always mutable unless explicitly set otherwise.
+
+### Example Usage
+
+```php
+// Fluent mutable workflow
+$json = Json::create()
+    ->set('user.name', 'John')
+    ->set('user.age', 30)
+    ->merge(['user' => ['email' => 'john@example.com']]);
+
+// Array-like access
+$json['verified'] = true;
+echo $json['user']['name'];  // John
+
+// Foreach iteration
+foreach ($json as $key => $value) {
+    echo "$key => $value\n";
+}
+
+// Immutable workflow
+$immutable = clone $json;
+$immutable->setMutabilityMode(JsonMutabilityMode::IMMUTABLE);
+
+$attempted = clone $immutable;
+$attempted->setMutabilityMode(JsonMutabilityMode::MUTABLE);
+$attempted->set('user.role', 'admin');  // Now succeeds
+
+// Magic methods
+echo $immutable->user->name;  // John (via __get)
+echo $immutable();            // Full data via __invoke
+echo $immutable;              // JSON string via __toString
+```
+
+---
+
 **Document End**
