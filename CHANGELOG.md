@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **PHP 8.4+ Type System Uplift**:
+  - Backed enums: `JsonMergeStrategy`, `NumberFormat`, `TraversalMode`
+  - `TypeCoercionService` for type normalization and coercion with strict/lenient modes
+  - `TypeCoercionTrait` for opt-in type coercion in classes
+  - PHP 8.4 array helper methods: `findElement()`, `findElementKey()`, `anyMatch()`, `allMatch()`, `firstElement()`, `lastElement()`, `lastElementKey()`
+  - Key existence checkers: `hasAnyKey()`, `hasAllKeys()`
+  - Enhanced `mapWith()` and `filterWith()` with key-aware callable support
+  - `ArrayHelpers` utility with polyfills for `array_find`, `array_find_key`, `array_any`, `array_all`
+  - Intersection type hints for transformers and validators
 - Advanced HTML to JSON conversion with configurable options
 - JSON5 support with comment preservation
 - Symfony YAML component integration
@@ -19,17 +28,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Security checks in CI pipeline
 
 ### Changed
+- **BREAKING**: Minimum PHP version now 8.0+ (added explicit 8.3|8.4 support)
 - Improved error handling with specific exceptions
-- Enhanced type safety with PHP 8.0+ features
+- Enhanced type safety with PHP 8.0+ union types and nullable types
+- Added readonly promoted properties support where appropriate
 - Optimized performance for large JSON structures
-- Updated documentation with comprehensive examples
+- Updated documentation with comprehensive examples and new helper methods
 - Restructured codebase for better maintainability
+- Polyfills for PHP 8.4 array functions on earlier versions
 
 ### Fixed
 - Memory usage optimization for large datasets
 - Proper handling of special characters in HTML
 - JSON5 comment extraction edge cases
 - YAML conversion with complex structures
+- Type coercion edge cases with strict/lenient modes
 
 ## [1.0.0] - YYYY-MM-DD
 

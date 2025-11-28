@@ -12,7 +12,7 @@ A powerful, intuitive, and comprehensive JSON management library for PHP 8+. Thi
 
 ## Features
 
-- 🚀 **Modern PHP 8+ Support**: Leverages latest PHP features including typed properties, union types, and attributes
+- 🚀 **Modern PHP 8.0-8.4 Support**: Leverages latest PHP features including typed properties, union types, readonly properties, backed enums, and first-class callables
 - 🛡️ **Type-Safe Operations**: Strong type checking and validation for reliable JSON handling
 - 🔄 **Fluent Interface**: Chainable methods for intuitive JSON manipulation
 - 📝 **JSON Schema Validation**: Built-in support for JSON Schema validation
@@ -26,12 +26,23 @@ A powerful, intuitive, and comprehensive JSON management library for PHP 8+. Thi
 - ⚡ **High Performance**: Optimized for speed and memory efficiency
 - 🧪 **Extensive Testing**: Comprehensive test coverage
 - 📚 **Rich Documentation**: Detailed documentation with examples
+- ✨ **PHP 8.4+ Array Helpers**: `array_find`, `array_find_key`, `array_any`, `array_all` with polyfills for earlier versions
+- 🔀 **Type Coercion Service**: Strict/lenient type normalization with edge case handling
+- 📋 **Backed Enums**: `JsonMergeStrategy`, `NumberFormat`, `TraversalMode` for type-safe constants
 
 ## Requirements
 
-- PHP 8.0 or higher
+- PHP 8.0+ (Supports PHP 8.0, 8.1, 8.2, 8.3, 8.4)
 - ext-json
 - ext-mbstring
+
+### PHP 8.4+ Features
+
+This library is built with PHP 8.4 readiness in mind. Features include:
+- Backed enums for type-safe constants
+- Array helper methods with built-in polyfills for PHP 8.0-8.3
+- First-class callable support
+- Full type union/intersection support
 
 ## Installation
 
@@ -125,6 +136,25 @@ $yaml = $json->toYaml();
 
 // Transform JSON to CSV
 $csv = $json->toCsv();
+```
+
+### PHP 8.4+ Array Helpers and Type Coercion
+
+```php
+// Find first element matching condition (PHP 8.4+)
+$users = new Json([
+    ['id' => 1, 'name' => 'Alice', 'age' => 25],
+    ['id' => 2, 'name' => 'Bob', 'age' => 30],
+]);
+
+$adult = $users->findElement(fn($user) => $user['age'] >= 30);
+$hasYoung = $users->anyMatch(fn($user) => $user['age'] < 18);
+$allAdults = $users->allMatch(fn($user) => $user['age'] >= 18);
+
+// Type coercion with strict/lenient modes
+$json->enableStrictCoercion(false);
+$int = $json->coerceInt('42');        // 42
+$bool = $json->coerceBool('true');    // true
 ```
 
 ### Streaming Large Files
