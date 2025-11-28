@@ -9,10 +9,10 @@ declare(strict_types=1);
  * the entire file into memory at once.
  */
 
+require __DIR__ . '/../../vendor/autoload.php';
+
 use Psr\Http\Message\StreamInterface;
 use Skpassegna\Json\Json;
-
-require __DIR__ . '/../../vendor/autoload.php';
 
 // Example: Parse streaming JSON from an array source
 // (In real scenarios, you'd use a PSR-7 stream implementation like Guzzle)

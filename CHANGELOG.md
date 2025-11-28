@@ -42,6 +42,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Automated code style fixes
 - Security checks in CI pipeline
 - Integration examples in `examples/streaming/` directory
+- **Procedural API & Examples**:
+  - Procedural functions wrapper in `src/Procedural/functions.php`
+  - Functions: `json_parse()`, `json_create()`, `json_get()`, `json_set()`, `json_remove()`, `json_has()`, `json_query()`, `json_merge()`, `json_merge_with_strategy()`, `json_diff()`, `json_diff_with_strategy()`, `json_validate()`, `json_stringify()`, `json_pretty()`, `json_data()`, `json_count()`, `json_is_empty()`, `json_to_xml()`, `json_to_yaml()`, `json_to_csv()`, `json_flatten()`, `json_unflatten()`
+  - Composer autoload files configuration for procedural functions
+  - Comprehensive examples in `examples/` directory:
+    - `examples/procedural/basic.php` - Basic procedural API usage
+    - `examples/procedural/merge-diff.php` - Merge and diff operations
+    - `examples/coercion/type-conversion.php` - Type coercion examples
+    - `examples/events/dispatcher-usage.php` - Event system usage
+    - `examples/security/input-validation.php` - Security best practices
+    - `examples/performance/caching-optimization.php` - Performance tuning
+  - `examples/README.md` with walkthrough and terminal commands
+- **Security Hardening**:
+  - Expanded SECURITY.md with comprehensive security guidelines
+  - Input validation and depth/length limit protection
+  - Schema validation best practices
+  - Type coercion safety guidelines
+  - Event hooks for custom validation
+  - Path traversal prevention guidance
+  - Exception hygiene recommendations
+  - Procedural API security patterns
+  - RFC compliance documentation (6902, 7396, 7159)
 
 ### Changed
 - **BREAKING**: Minimum PHP version now 8.0+ (added explicit 8.3|8.4 support)

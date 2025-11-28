@@ -94,6 +94,8 @@ composer fix-style
 * Add type hints for parameters and return types
 * Use meaningful variable names
 * Keep methods focused and concise
+* Maintain SOLID principles in class design
+* Use dependency inversion through interfaces
 
 ### Testing
 
@@ -101,6 +103,49 @@ composer fix-style
 * Ensure all tests pass before submitting PR
 * Aim for high code coverage
 * Include both positive and negative test cases
+* Test both OOP and procedural paths if applicable
+* Add integration tests for end-to-end scenarios
+
+### Procedural API Guidelines
+
+When adding new functionality to the procedural API wrapper:
+
+1. **Function Naming**: Use `json_*` prefix following PHP conventions
+2. **Consistency**: Ensure procedural functions delegate to OOP methods
+3. **Documentation**: Add comprehensive docblocks with `@param` and `@return`
+4. **Examples**: Create corresponding example files in `examples/`
+5. **Tests**: Add integration tests in `tests/` validating both paths
+6. **Registration**: Update `composer.json` `files` autoload if needed
+
+Example procedural function structure:
+```php
+/**
+ * Brief description.
+ *
+ * @param Type $param Description
+ * @return ReturnType Description
+ * @throws ExceptionType
+ */
+function json_operation(Type $param): ReturnType
+{
+    if (!$param instanceof Json) {
+        $param = new Json($param);
+    }
+    
+    return $param->operation();
+}
+```
+
+### Example File Guidelines
+
+When adding examples:
+
+1. **Location**: Place in appropriate subdirectory (`procedural/`, `security/`, etc.)
+2. **Execution**: Ensure it's runnable via `php examples/<path>.php`
+3. **Comments**: Include clear header comment explaining the example
+4. **Output**: Print human-readable output demonstrating features
+5. **Documentation**: Update `examples/README.md` with terminal commands
+6. **No Dependencies**: Use only library features, no external packages
 
 ## Dependencies and Tools
 
