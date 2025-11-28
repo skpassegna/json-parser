@@ -11,11 +11,18 @@ use IteratorAggregate;
 use JsonException;
 use Stringable;
 use Traversable;
+use Psr\Http\Message\StreamInterface;
+use Skpassegna\Json\Cache\MemoryStore;
+use Skpassegna\Json\Contracts\CacheStoreInterface;
 use Skpassegna\Json\Contracts\JsonInterface;
 use Skpassegna\Json\Exceptions\ParseException;
 use Skpassegna\Json\Exceptions\RuntimeException;
 use Skpassegna\Json\Exceptions\ValidationException;
 use Skpassegna\Json\Schema\Validator;
+use Skpassegna\Json\Streaming\LazyJsonProxy;
+use Skpassegna\Json\Streaming\StreamingBuilder;
+use Skpassegna\Json\Streaming\StreamingJsonParser;
+use Skpassegna\Json\Streaming\StreamingJsonSerializer;
 use Skpassegna\Json\Traits\DataAccessTrait;
 use Skpassegna\Json\Traits\TransformationTrait;
 use Skpassegna\Json\Traits\TypeCoercionTrait;
@@ -598,6 +605,122 @@ class Json implements JsonInterface, ArrayAccess, IteratorAggregate, Countable, 
             'data' => $this->data,
             'mutabilityMode' => $this->mutabilityMode->name,
         ];
+    }
+
+    /**
+     * Create a streaming builder for advanced configuration.
+     *
+     * @return StreamingBuilder
+     */
+    public static function streaming(): StreamingBuilder
+    {
+        return new StreamingBuilder();
+    }
+
+    /**
+     * Parse a PSR-7 stream and yield decoded JSON chunks.
+     *
+     * @param StreamInterface $stream The PSR-7 stream
+     * @param int $chunkSize Optional chunk size in bytes
+     * @return \Generator<int, mixed, null, void>
+     */
+    public static function parseStream(StreamInterface $stream, int $chunkSize = 8192): \Generator
+    {
+        $parser = new StreamingJsonParser();
+        yield from $parser->parse($stream, $chunkSize);
+    }
+
+    /**
+     * Parse newline-delimited JSON from a PSR-7 stream.
+     *
+     * @param StreamInterface $stream The PSR-7 stream
+     * @param int $chunkSize Optional chunk size in bytes
+     * @return \Generator<int, mixed, null, void>
+     */
+    public static function parseNdJsonStream(StreamInterface $stream, int $chunkSize = 8192): \Generator
+    {
+        $parser = new StreamingJsonParser();
+        yield from $parser->parseNdJson($stream, $chunkSize);
+    }
+
+    /**
+     * Create a lazy proxy that defers decoding until access.
+     *
+     * @param callable $loader Callable that returns the JSON data
+     * @param bool $prefetch Whether to prefetch on first access
+     * @return LazyJsonProxy
+     */
+    public static function lazy(callable $loader, bool $prefetch = false): LazyJsonProxy
+    {
+        return new LazyJsonProxy($loader, $prefetch);
+    }
+
+    /**
+     * Serialize data to a PSR-7 stream as chunks.
+     *
+     * @param mixed $data Data to serialize
+     * @param StreamInterface $stream Target PSR-7 stream
+     * @param int $chunkSize Optional chunk size in bytes
+     * @return \Generator<int, string, null, void>
+     */
+    public static function serializeStream(mixed $data, StreamInterface $stream, int $chunkSize = 8192): \Generator
+    {
+        $serializer = new StreamingJsonSerializer();
+        yield from $serializer->serialize($data, $stream, $chunkSize);
+    }
+
+    /**
+     * Serialize array as newline-delimited JSON to a PSR-7 stream.
+     *
+     * @param array $items Items to serialize
+     * @param StreamInterface $stream Target PSR-7 stream
+     * @return \Generator<int, string, null, void>
+     */
+    public static function serializeNdJsonStream(array $items, StreamInterface $stream): \Generator
+    {
+        $serializer = new StreamingJsonSerializer();
+        yield from $serializer->serializeNdJson($items, $stream);
+    }
+
+    /**
+     * Initialize caching layer for expensive queries.
+     *
+     * @param ?CacheStoreInterface $store Custom cache store (optional)
+     * @param ?int $ttl Time to live in seconds
+     * @return CacheStoreInterface
+     */
+    public static function cache(?CacheStoreInterface $store = null, ?int $ttl = null): CacheStoreInterface
+    {
+        return $store ?? new MemoryStore();
+    }
+
+    /**
+     * Query with caching support.
+     *
+     * @param string $path JSONPath expression
+     * @param ?CacheStoreInterface $cache Cache store
+     * @param ?int $ttl Cache TTL in seconds
+     * @return array Query results
+     */
+    public function queryWithCache(
+        string $path,
+        ?CacheStoreInterface $cache = null,
+        ?int $ttl = null
+    ): array {
+        if ($cache === null) {
+            $cache = new MemoryStore();
+        }
+
+        $cacheKey = 'query:' . md5($path);
+        
+        if ($cache->has($cacheKey)) {
+            return $cache->get($cacheKey, []);
+        }
+
+        $results = $this->query($path);
+        $cache->put($cacheKey, $results, $ttl);
+
+        return $results;
     }
 
     /**

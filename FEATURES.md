@@ -98,6 +98,60 @@
 - `TraversalMode` - Array traversal modes (breadth-first, depth-first, lazy, strict)
 - All enums include helper methods for type checking
 
+### 11. Streaming JSON Parser (Generators)
+**Location**: `src/Streaming/StreamingJsonParser.php`
+- PSR-7 StreamInterface support for non-blocking I/O
+- Incremental JSON parsing with generators
+- Configurable chunk sizes for memory optimization
+- Complete JSON object extraction from partial data
+- Newline-delimited JSON (NDJSON) mode
+- Event callbacks for chunk processing and error handling
+- Buffer state tracking for multi-value streams
+- Sub-linear memory usage for large payloads
+
+### 12. Streaming JSON Serializer
+**Location**: `src/Streaming/StreamingJsonSerializer.php`
+- Generator-based incremental serialization
+- Chunk-wise writing to PSR-7 streams
+- Newline-delimited JSON (NDJSON) output format
+- Event callbacks for write monitoring
+- Error handling and exception propagation
+- Efficient memory usage for large datasets
+- JSON formatting options (unescaped slashes, etc.)
+
+### 13. Lazy JSON Proxy
+**Location**: `src/Streaming/LazyJsonProxy.php`
+- Deferred parsing with automatic on-demand loading
+- Transparent ArrayAccess implementation
+- Magic property access for object-style syntax
+- Countable interface support
+- IteratorAggregate for foreach iteration
+- Prefetch option for bulk initialization
+- Reset capability for re-initialization
+- Minimal memory overhead until first access
+
+### 14. Caching Layer
+**Location**: `src/Cache/MemoryStore.php`, `src/Contracts/CacheStoreInterface.php`
+- PSR-16-like cache interface for flexibility
+- In-memory cache implementation with TTL support
+- Cache invalidation hooks for data mutations
+- Automatic expiration of stale entries
+- Support for complex data types (arrays, objects)
+- Pluggable cache strategies via interface
+- Query result caching for expensive JSONPath operations
+
+### 15. Streaming Builder (Fluent API)
+**Location**: `src/Streaming/StreamingBuilder.php`
+- Fluent configuration interface for streaming operations
+- Configurable chunk sizes (1KB-1MB, default 8KB)
+- Buffer limit settings for memory protection
+- Built-in cache integration with optional TTL
+- Event callback registration (onChunk, onError)
+- Mode switching (lazy, NDJSON, standard)
+- Parser/serializer factory methods
+- Lazy proxy creation with builder context
+- Environment-safe defaults
+
 ## Development Tools
 - PHPUnit for unit testing
 - PHPStan for static analysis

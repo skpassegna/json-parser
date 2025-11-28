@@ -29,6 +29,10 @@ A powerful, intuitive, and comprehensive JSON management library for PHP 8+. Thi
 - ✨ **PHP 8.4+ Array Helpers**: `array_find`, `array_find_key`, `array_any`, `array_all` with polyfills for earlier versions
 - 🔀 **Type Coercion Service**: Strict/lenient type normalization with edge case handling
 - 📋 **Backed Enums**: `JsonMergeStrategy`, `NumberFormat`, `TraversalMode` for type-safe constants
+- 📡 **Streaming APIs**: PSR-7 stream support for large file processing with chunking
+- 🔄 **Lazy Loading**: Deferred parsing with ArrayAccess and magic method support
+- 💾 **Query Caching**: PSR-16-like cache interface with memory optimization
+- 🎯 **NDJSON Support**: Native newline-delimited JSON parsing and serialization
 
 ## Requirements
 
@@ -157,21 +161,77 @@ $int = $json->coerceInt('42');        // 42
 $bool = $json->coerceBool('true');    // true
 ```
 
-### Streaming Large Files
+### Streaming Large Files with PSR-7 Support
 
 ```php
-use Skpassegna\Json\Stream\JsonReader;
-use Skpassegna\Json\Stream\JsonWriter;
+// Parse large JSON from PSR-7 stream
+use Psr\Http\Message\StreamInterface;
 
-// Read large JSON file
-$reader = new JsonReader('large-file.json');
-foreach ($reader as $item) {
-    // Process each item
+foreach (Json::parseStream($stream, chunkSize: 8192) as $item) {
+    // Process each item without loading entire file into memory
 }
 
-// Write large JSON file
-$writer = new JsonWriter('output.json');
-$writer->write($data);
+// Parse newline-delimited JSON (NDJSON)
+foreach (Json::parseNdJsonStream($stream, chunkSize: 8192) as $record) {
+    // Process each line as separate JSON object
+}
+
+// Serialize data to stream
+$items = [/* ... */];
+foreach (Json::serializeNdJsonStream($items, $stream) as $chunk) {
+    // Write NDJSON chunks
+}
+```
+
+### Lazy Loading for Deferred Parsing
+
+```php
+// Create lazy proxy that defers decoding
+$config = Json::lazy(function () {
+    return json_decode(file_get_contents('config.json'), true);
+}, prefetch: false);
+
+// Data not loaded yet
+echo $config['database']['host']; // Loads on first access
+
+// Access via array syntax
+$config['api']['timeout'] = 30;
+
+// Iterate over lazy data
+foreach ($config as $key => $value) {
+    echo "$key: $value\n";
+}
+```
+
+### Query Caching for Performance
+
+```php
+// Create cache store
+$cache = Json::cache();
+
+// Query with automatic caching
+$results = $json->queryWithCache(
+    '$.users[?(@.role=="admin")]',
+    cache: $cache,
+    ttl: 3600
+);
+
+// Subsequent queries use cached results
+$results = $json->queryWithCache(
+    '$.users[?(@.role=="admin")]',
+    cache: $cache
+);
+
+// Build with fluent configuration
+$builder = Json::streaming()
+    ->withChunkSize(16384)
+    ->withCache()
+    ->withBufferLimit(52428800)
+    ->ndJson();
+
+foreach ($builder->parse($stream) as $item) {
+    // Process NDJSON with caching enabled
+}
 ```
 
 ### Security Features
