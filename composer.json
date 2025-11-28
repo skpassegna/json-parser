@@ -48,7 +48,10 @@
     "autoload": {
         "psr-4": {
             "Skpassegna\\Json\\": "src/"
-        }
+        },
+        "files": [
+            "src/Procedural/functions.php"
+        ]
     },
     "autoload-dev": {
         "psr-4": {

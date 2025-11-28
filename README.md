@@ -58,6 +58,8 @@ composer require skpassegna/json-parser
 
 ## Basic Usage
 
+### Object-Oriented Approach
+
 ```php
 use Skpassegna\Json\Json;
 
@@ -90,6 +92,38 @@ $isValid = $json->validateSchema($schema);
 // Query using JSONPath
 $results = $json->query('$.address.city');
 ```
+
+### Procedural Approach
+
+The library also provides procedural functions for a functional programming style:
+
+```php
+use function Skpassegna\Json\Procedural\{
+    json_parse,
+    json_get,
+    json_set,
+    json_stringify,
+    json_pretty
+};
+
+// Parse JSON string
+$json = json_parse('{"name": "John", "age": 30}');
+
+// Access data
+$name = json_get($json, 'name'); // "John"
+
+// Modify data
+json_set($json, 'age', 31);
+json_set($json, 'city', 'New York');
+
+// Convert back to JSON string
+$jsonString = json_stringify($json);
+
+// Pretty print
+$prettyJson = json_pretty($json);
+```
+
+Both approaches are equally valid and delegate to the same underlying implementation. Choose whichever style best fits your codebase.
 
 ## Detailed Usage
 
@@ -288,6 +322,107 @@ Contributions are welcome! Please see the [CONTRIBUTING.md](CONTRIBUTING.md) fil
 ## Changelog
 
 For a list of changes and updates, please refer to the [CHANGELOG.md](CHANGELOG.md).
+
+## Examples
+
+Comprehensive examples demonstrating all features are available in the `examples/` directory:
+
+- **Procedural API**: `php examples/procedural/basic.php`
+- **Streaming**: `php examples/streaming/parse_large.php`
+- **Merge/Diff**: `php examples/procedural/merge-diff.php`
+- **Type Coercion**: `php examples/coercion/type-conversion.php`
+- **Events**: `php examples/events/dispatcher-usage.php`
+- **Security**: `php examples/security/input-validation.php`
+- **Performance**: `php examples/performance/caching-optimization.php`
+
+See [examples/README.md](examples/README.md) for detailed documentation.
+
+## Security Considerations
+
+### Input Validation
+
+Always validate and sanitize JSON input before processing:
+
+```php
+// Validate with maximum depth and length limits
+$json = Json::parse($input, [
+    'max_depth' => 10,      // Prevent deeply nested attacks
+    'max_length' => 1000000 // Prevent oversized payloads
+]);
+
+// Validate against schema before processing
+$json->validateSchema($schema);
+```
+
+### Schema Validation
+
+Use JSON Schema validation to ensure data conforms to expected structure:
+
+```php
+$schema = [
+    'type' => 'object',
+    'properties' => [
+        'name' => ['type' => 'string'],
+        'age' => ['type' => 'integer', 'minimum' => 0]
+    ],
+    'required' => ['name']
+];
+
+if (!$json->validateSchema($schema)) {
+    // Handle invalid data
+}
+```
+
+### Event Hooks for Custom Validation
+
+Subscribe to events for custom validation logic:
+
+```php
+$json->getDispatcher()->subscribe('before_merge', function($event) {
+    // Custom validation before merge operations
+    $operand = $event->getPayload()['operand1'] ?? null;
+    if (/* invalid */) {
+        throw new ValidationException('Invalid data');
+    }
+});
+```
+
+For comprehensive security guidelines, see [SECURITY.md](SECURITY.md).
+
+## Performance Optimization
+
+### Query Caching
+
+Avoid repeated JSONPath evaluations with caching:
+
+```php
+$cache = Json::cache();
+$results = $json->queryWithCache('$.users[?(@.role=="admin")]', cache: $cache);
+// Subsequent identical queries use cached results
+```
+
+### Streaming for Large Files
+
+Process large JSON files without loading entirely into memory:
+
+```php
+foreach (Json::parseStream($stream, chunkSize: 8192) as $item) {
+    // Process each item individually
+}
+```
+
+### Lazy Loading
+
+Defer parsing until data is actually accessed:
+
+```php
+$config = Json::lazy(function () {
+    return json_decode(file_get_contents('config.json'), true);
+});
+
+// Data loaded only on first access
+echo $config['database']['host'];
+```
 
 ## Testing
 
