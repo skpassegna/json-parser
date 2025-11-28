@@ -630,7 +630,7 @@ class Json implements JsonInterface, ArrayAccess, IteratorAggregate, Countable, 
         return $this->toString();
     }
 
-    // ============ Magic Methods ============
+
 
     /**
      * Magic method to get a value by property name.
