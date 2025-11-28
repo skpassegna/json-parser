@@ -68,16 +68,17 @@ $dispatcher3->subscribe(EventType::AFTER_PARSE->value, fn($e) => null);
 $dispatcher3->subscribe(EventType::BEFORE_VALIDATE->value, fn($e) => null);
 
 $inspector = $json3->reflect(true);
+$description = $inspector->describeDocument();
 
 echo "   Document structure:\n";
-echo "     Type: " . $inspector->getDocumentType() . "\n";
-echo "     Size: " . $inspector->getDocumentSize() . " nodes\n";
-echo "     Depth: " . $inspector->getDocumentDepth() . " levels\n\n";
+echo "     Type: " . $description['type'] . "\n";
+echo "     Size: " . $description['size'] . " bytes\n";
+echo "     Depth: " . $description['depth'] . " levels\n\n";
 
 echo "   Event listeners registered:\n";
-$listeners = $inspector->getListenersByEventType();
-foreach ($listeners as $eventType => $count) {
-    echo "     - " . $eventType . ": " . $count . " listener(s)\n";
+$listenerInfo = $inspector->getListenerInfo();
+foreach ($listenerInfo as $eventType => $listeners) {
+    echo "     - " . $eventType . ": " . count($listeners) . " listener(s)\n";
 }
 echo "\n";
 

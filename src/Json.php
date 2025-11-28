@@ -113,11 +113,13 @@ class Json implements JsonInterface, ArrayAccess, IteratorAggregate, Countable, 
     }
 
     /**
-     * Create a new empty JSON instance.
+     * Create a new empty JSON instance or from initial data.
+     *
+     * @param mixed $data Optional initial data
      */
-    public static function create(): static
+    public static function create(mixed $data = []): static
     {
-        return new self();
+        return new self($data);
     }
 
     /**

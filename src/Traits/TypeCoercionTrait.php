@@ -60,6 +60,11 @@ trait TypeCoercionTrait
         return $this->getTypeCoercionService()->coerceToObject($value);
     }
 
+    public function coerceNull(mixed $value): null
+    {
+        return $this->getTypeCoercionService()->coerceToNull($value);
+    }
+
     public function normalizeScalar(mixed $value, string $targetType): mixed
     {
         return $this->getTypeCoercionService()->normalizeScalar($value, $targetType);
