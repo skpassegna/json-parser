@@ -1,0 +1,56 @@
+{
+  "app": {
+    "name": "My Application",
+    "version": "1.0.0",
+    "debug": true,
+    "timezone": "UTC"
+  },
+  "server": {
+    "host": "0.0.0.0",
+    "port": 8080,
+    "ssl": {
+      "enabled": false,
+      "cert": "/path/to/cert.pem",
+      "key": "/path/to/key.pem"
+    }
+  },
+  "database": {
+    "default": "mysql",
+    "connections": {
+      "mysql": {
+        "driver": "mysql",
+        "host": "localhost",
+        "port": 3306,
+        "database": "myapp",
+        "username": "root",
+        "pool": {
+          "min": 2,
+          "max": 10,
+          "idle_timeout": 300
+        }
+      },
+      "redis": {
+        "driver": "redis",
+        "host": "localhost",
+        "port": 6379,
+        "database": 0
+      }
+    }
+  },
+  "cache": {
+    "default": "file",
+    "ttl": 3600,
+    "stores": {
+      "file": {
+        "path": "/var/cache"
+      },
+      "redis": {
+        "connection": "redis"
+      }
+    }
+  },
+  "logging": {
+    "level": "info",
+    "channels": ["file", "stderr"]
+  }
+}
