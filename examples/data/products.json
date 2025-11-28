@@ -1,0 +1,51 @@
+{
+  "store": {
+    "name": "Tech Store",
+    "products": [
+      {
+        "id": 101,
+        "name": "Laptop",
+        "price": 999.99,
+        "currency": "USD",
+        "stock": 45,
+        "category": "electronics",
+        "tags": ["computer", "portable", "business"],
+        "specs": {
+          "ram": "16GB",
+          "storage": "512GB SSD",
+          "cpu": "Intel i7",
+          "screen": "15.6 inch"
+        }
+      },
+      {
+        "id": 102,
+        "name": "Mouse",
+        "price": 29.99,
+        "currency": "USD",
+        "stock": 200,
+        "category": "accessories",
+        "tags": ["input", "wireless", "ergonomic"],
+        "specs": {
+          "connectivity": "Bluetooth",
+          "buttons": 3,
+          "dpi": "3200"
+        }
+      },
+      {
+        "id": 103,
+        "name": "Keyboard",
+        "price": 149.99,
+        "currency": "USD",
+        "stock": 87,
+        "category": "accessories",
+        "tags": ["input", "mechanical", "rgb"],
+        "specs": {
+          "type": "Mechanical",
+          "switches": "Cherry MX",
+          "lighting": "RGB",
+          "keys": 104
+        }
+      }
+    ]
+  }
+}
