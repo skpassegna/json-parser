@@ -2,7 +2,7 @@
 
 **Version**: 1.0  
 **Status**: Draft  
-**Last Updated**: 2024  
+**Last Updated**: November 28, 2025    
 **Purpose**: Comprehensive API reference with method signatures, parameters, return types, exceptions, lifecycle notes, and future refactor deltas
 
 ---
