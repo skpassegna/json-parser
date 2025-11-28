@@ -4,9 +4,16 @@ declare(strict_types=1);
 
 namespace Skpassegna\Json;
 
+use ArrayAccess;
+use ArrayIterator;
+use Countable;
+use IteratorAggregate;
 use JsonException;
+use Stringable;
+use Traversable;
 use Skpassegna\Json\Contracts\JsonInterface;
 use Skpassegna\Json\Exceptions\ParseException;
+use Skpassegna\Json\Exceptions\RuntimeException;
 use Skpassegna\Json\Exceptions\ValidationException;
 use Skpassegna\Json\Schema\Validator;
 use Skpassegna\Json\Traits\DataAccessTrait;
@@ -15,7 +22,7 @@ use Skpassegna\Json\Utils\JsonPath;
 use Skpassegna\Json\Utils\JsonPointer;
 use Skpassegna\Json\Utils\JsonMerge;
 
-class Json implements JsonInterface
+class Json implements JsonInterface, ArrayAccess, IteratorAggregate, Countable, Stringable
 {
     use DataAccessTrait;
     use TransformationTrait;
@@ -26,13 +33,24 @@ class Json implements JsonInterface
     protected array|object $data = [];
 
     /**
+     * @var JsonMutabilityMode
+     */
+    protected JsonMutabilityMode $mutabilityMode = JsonMutabilityMode::MUTABLE;
+
+    /**
      * Constructor.
      *
-     * @param array|object $data
+     * @param array|object|mixed $data
+     * @param JsonMutabilityMode $mutabilityMode
      */
-    public function __construct(array|object $data = [])
+    public function __construct(mixed $data = [], JsonMutabilityMode $mutabilityMode = JsonMutabilityMode::MUTABLE)
     {
-        $this->data = $data;
+        if (is_array($data) || is_object($data)) {
+            $this->data = $data;
+        } else {
+            $this->data = [];
+        }
+        $this->mutabilityMode = $mutabilityMode;
     }
 
     /**
@@ -117,6 +135,8 @@ class Json implements JsonInterface
      */
     public function set(string $path, mixed $value): static
     {
+        $this->guardMutable();
+        
         $current = &$this->data;
         $segments = explode('.', $path);
         $last = array_pop($segments);
@@ -141,6 +161,8 @@ class Json implements JsonInterface
      */
     public function remove(string $path): static
     {
+        $this->guardMutable();
+        
         $segments = explode('.', $path);
         $current = &$this->data;
         $lastSegment = array_pop($segments);
@@ -236,6 +258,8 @@ class Json implements JsonInterface
      */
     public function merge(JsonInterface|array $source, bool $recursive = true): static
     {
+        $this->guardMutable();
+        
         $sourceData = $source instanceof JsonInterface ? $source->getData() : $source;
         
         if ($recursive) {
@@ -289,6 +313,8 @@ class Json implements JsonInterface
      */
     public function setPointer(string $pointer, mixed $value): static
     {
+        $this->guardMutable();
+        
         JsonPointer::set($this->data, $pointer, $value);
         return $this;
     }
@@ -302,7 +328,313 @@ class Json implements JsonInterface
      */
     public function mergeJson(mixed $source, string $strategy = JsonMerge::MERGE_RECURSIVE): static
     {
+        $this->guardMutable();
+        
         $this->data = JsonMerge::merge($this->data, $source, $strategy);
         return $this;
+    }
+
+    /**
+     * Set the mutability mode.
+     *
+     * @param JsonMutabilityMode $mode
+     * @return $this
+     */
+    public function setMutabilityMode(JsonMutabilityMode $mode): static
+    {
+        $this->mutabilityMode = $mode;
+        return $this;
+    }
+
+    /**
+     * Get the mutability mode.
+     *
+     * @return JsonMutabilityMode
+     */
+    public function getMutabilityMode(): JsonMutabilityMode
+    {
+        return $this->mutabilityMode;
+    }
+
+    /**
+     * Check if this instance is mutable.
+     *
+     * @return bool
+     */
+    public function isMutable(): bool
+    {
+        return $this->mutabilityMode->isMutable();
+    }
+
+    /**
+     * Check if this instance is immutable.
+     *
+     * @return bool
+     */
+    public function isImmutable(): bool
+    {
+        return $this->mutabilityMode->isImmutable();
+    }
+
+    // ============ ArrayAccess Implementation ============
+
+    /**
+     * Check whether an offset exists.
+     *
+     * @param mixed $offset
+     * @return bool
+     */
+    public function offsetExists(mixed $offset): bool
+    {
+        if (!is_array($this->data) && !is_object($this->data)) {
+            return false;
+        }
+        return is_array($this->data) 
+            ? array_key_exists($offset, $this->data)
+            : property_exists($this->data, $offset);
+    }
+
+    /**
+     * Get a value at an offset.
+     *
+     * @param mixed $offset
+     * @return mixed
+     */
+    public function offsetGet(mixed $offset): mixed
+    {
+        if (!$this->offsetExists($offset)) {
+            return null;
+        }
+        return is_array($this->data)
+            ? $this->data[$offset]
+            : $this->data->$offset;
+    }
+
+    /**
+     * Set a value at an offset.
+     *
+     * @param mixed $offset
+     * @param mixed $value
+     * @throws RuntimeException If the instance is immutable
+     */
+    public function offsetSet(mixed $offset, mixed $value): void
+    {
+        $this->guardMutable();
+        
+        if ($offset === null) {
+            if (is_array($this->data)) {
+                $this->data[] = $value;
+            } else {
+                throw new RuntimeException('Cannot append to non-array data using ArrayAccess');
+            }
+        } else {
+            if (is_array($this->data)) {
+                $this->data[$offset] = $value;
+            } elseif (is_object($this->data)) {
+                $this->data->$offset = $value;
+            } else {
+                throw new RuntimeException('Cannot set offset on non-array/non-object data');
+            }
+        }
+    }
+
+    /**
+     * Unset a value at an offset.
+     *
+     * @param mixed $offset
+     * @throws RuntimeException If the instance is immutable
+     */
+    public function offsetUnset(mixed $offset): void
+    {
+        $this->guardMutable();
+        
+        if (is_array($this->data)) {
+            unset($this->data[$offset]);
+        } elseif (is_object($this->data)) {
+            unset($this->data->$offset);
+        }
+    }
+
+    // ============ IteratorAggregate Implementation ============
+
+    /**
+     * Get an iterator for the data.
+     *
+     * @return Traversable
+     */
+    public function getIterator(): Traversable
+    {
+        if (is_array($this->data)) {
+            return new ArrayIterator($this->data);
+        }
+        return new ArrayIterator((array)$this->data);
+    }
+
+    // ============ Countable Implementation ============
+
+    /**
+     * Count elements in the JSON data (inherited from DataAccessTrait, but made explicit here).
+     *
+     * @return int
+     */
+    public function count(): int
+    {
+        if (is_array($this->data)) {
+            return count($this->data);
+        }
+        if (is_object($this->data)) {
+            return count((array)$this->data);
+        }
+        return 0;
+    }
+
+    // ============ Stringable Implementation ============
+
+    /**
+     * Convert to string (magic method).
+     *
+     * @return string
+     */
+    public function __toString(): string
+    {
+        return $this->toString();
+    }
+
+    // ============ Magic Methods ============
+
+    /**
+     * Magic method to get a value by property name.
+     *
+     * @param string $name
+     * @return mixed
+     */
+    public function __get(string $name): mixed
+    {
+        return $this->get($name);
+    }
+
+    /**
+     * Magic method to set a value by property name.
+     *
+     * @param string $name
+     * @param mixed $value
+     * @throws RuntimeException If the instance is immutable
+     */
+    public function __set(string $name, mixed $value): void
+    {
+        $this->set($name, $value);
+    }
+
+    /**
+     * Magic method to check if a property exists.
+     *
+     * @param string $name
+     * @return bool
+     */
+    public function __isset(string $name): bool
+    {
+        return $this->has($name);
+    }
+
+    /**
+     * Magic method to unset a property.
+     *
+     * @param string $name
+     * @throws RuntimeException If the instance is immutable
+     */
+    public function __unset(string $name): void
+    {
+        $this->remove($name);
+    }
+
+    /**
+     * Magic method to call instance as a function.
+     *
+     * @param string|null $path
+     * @return mixed
+     */
+    public function __invoke(?string $path = null): mixed
+    {
+        if ($path === null) {
+            return $this->data;
+        }
+        return $this->get($path);
+    }
+
+    /**
+     * Magic method to call non-existent methods.
+     *
+     * @param string $method
+     * @param array $arguments
+     * @throws RuntimeException
+     */
+    public function __call(string $method, array $arguments): never
+    {
+        throw new RuntimeException("Call to undefined method " . static::class . "::{$method}()");
+    }
+
+    /**
+     * Magic method to call non-existent static methods.
+     *
+     * @param string $method
+     * @param array $arguments
+     * @throws RuntimeException
+     */
+    public static function __callStatic(string $method, array $arguments): never
+    {
+        throw new RuntimeException("Call to undefined static method " . static::class . "::{$method}()");
+    }
+
+    /**
+     * Magic method for debugging information.
+     *
+     * @return array
+     */
+    public function __debugInfo(): array
+    {
+        return [
+            'data' => $this->data,
+            'mutabilityMode' => $this->mutabilityMode->name,
+        ];
+    }
+
+    /**
+     * Magic method for cloning.
+     *
+     * @return void
+     */
+    public function __clone(): void
+    {
+        if (is_array($this->data)) {
+            $this->data = array_map(static fn ($item) => is_object($item) ? clone $item : $item, $this->data);
+        } elseif (is_object($this->data)) {
+            $this->data = clone $this->data;
+        }
+        $this->mutabilityMode = JsonMutabilityMode::MUTABLE;
+    }
+
+    /**
+     * Magic method for serialization.
+     *
+     * @return array
+     */
+    public function __serialize(): array
+    {
+        return [
+            'data' => $this->data,
+            'mutabilityMode' => $this->mutabilityMode,
+        ];
+    }
+
+    /**
+     * Magic method for unserialization.
+     *
+     * @param array $data
+     * @return void
+     */
+    public function __unserialize(array $data): void
+    {
+        $this->data = $data['data'] ?? [];
+        $this->mutabilityMode = $data['mutabilityMode'] ?? JsonMutabilityMode::MUTABLE;
     }
 }

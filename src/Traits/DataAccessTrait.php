@@ -4,8 +4,43 @@ declare(strict_types=1);
 
 namespace Skpassegna\Json\Traits;
 
+use Skpassegna\Json\Exceptions\RuntimeException;
+use Skpassegna\Json\JsonMutabilityMode;
+
 trait DataAccessTrait
 {
+    /**
+     * Guard against mutations when in immutable mode.
+     *
+     * @throws RuntimeException If the instance is immutable
+     */
+    protected function guardMutable(): void
+    {
+        if (property_exists($this, 'mutabilityMode') && $this->mutabilityMode->isImmutable()) {
+            throw new RuntimeException('Cannot mutate an immutable JSON instance. Use clone() or set mutable mode to modify data.');
+        }
+    }
+
+    /**
+     * Assert that a key exists in the data.
+     *
+     * @throws RuntimeException If the key does not exist
+     */
+    protected function assertKeyExists(string|int $key): void
+    {
+        if (is_array($this->data)) {
+            if (!array_key_exists($key, $this->data)) {
+                throw new RuntimeException("Key '{$key}' does not exist in JSON data.");
+            }
+        } elseif (is_object($this->data)) {
+            if (!property_exists($this->data, $key)) {
+                throw new RuntimeException("Property '{$key}' does not exist in JSON object.");
+            }
+        } else {
+            throw new RuntimeException('Cannot access keys on non-array/non-object data.');
+        }
+    }
+
     /**
      * Get all keys at the current level.
      *
@@ -33,7 +68,13 @@ trait DataAccessTrait
      */
     public function count(): int
     {
-        return is_array($this->data) ? count($this->data) : 0;
+        if (is_array($this->data)) {
+            return count($this->data);
+        }
+        if (is_object($this->data)) {
+            return count((array)$this->data);
+        }
+        return 0;
     }
 
     /**
@@ -84,6 +125,9 @@ trait DataAccessTrait
         $filtered = array_filter($this->data, $callback, ARRAY_FILTER_USE_BOTH);
         $new = clone $this;
         $new->data = $filtered;
+        if (property_exists($new, 'mutabilityMode')) {
+            $new->mutabilityMode = JsonMutabilityMode::MUTABLE;
+        }
 
         return $new;
     }
@@ -103,6 +147,9 @@ trait DataAccessTrait
         $mapped = array_map($callback, $this->data);
         $new = clone $this;
         $new->data = $mapped;
+        if (property_exists($new, 'mutabilityMode')) {
+            $new->mutabilityMode = JsonMutabilityMode::MUTABLE;
+        }
 
         return $new;
     }
@@ -144,6 +191,9 @@ trait DataAccessTrait
 
         $new = clone $this;
         $new->data = $sorted;
+        if (property_exists($new, 'mutabilityMode')) {
+            $new->mutabilityMode = JsonMutabilityMode::MUTABLE;
+        }
 
         return $new;
     }
@@ -164,6 +214,9 @@ trait DataAccessTrait
         $sliced = array_slice($this->data, $offset, $length);
         $new = clone $this;
         $new->data = $sliced;
+        if (property_exists($new, 'mutabilityMode')) {
+            $new->mutabilityMode = JsonMutabilityMode::MUTABLE;
+        }
 
         return $new;
     }
@@ -279,6 +332,8 @@ trait DataAccessTrait
      */
     public function set(string $path, mixed $value): static
     {
+        $this->guardMutable();
+        
         $segments = explode('.', $path);
         $current = &$this->data;
 
