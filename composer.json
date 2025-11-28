@@ -19,7 +19,7 @@
         }
     ],
     "require": {
-        "php": "^8.0|^8.1|^8.2",
+        "php": "^8.0|^8.1|^8.2|^8.3|^8.4",
         "ext-json": "*",
         "ext-mbstring": "*",
         "justinrainbow/json-schema": "^6.0",
@@ -29,6 +29,7 @@
         "symfony/polyfill-php81": "^1.31",
         "symfony/polyfill-php82": "^1.31",
         "symfony/polyfill-php83": "^1.31",
+        "symfony/polyfill-php84": "^1.31",
         "symfony/yaml": "^7.1"
     },
     "require-dev": {

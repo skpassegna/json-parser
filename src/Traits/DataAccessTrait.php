@@ -6,6 +6,7 @@ namespace Skpassegna\Json\Traits;
 
 use Skpassegna\Json\Exceptions\RuntimeException;
 use Skpassegna\Json\JsonMutabilityMode;
+use Skpassegna\Json\Utils\ArrayHelpers;
 
 trait DataAccessTrait
 {
@@ -325,15 +326,15 @@ trait DataAccessTrait
 
     /**
      * Set a value at the specified path.
-     *
-     * @param string $path
-     * @param mixed $value
-     * @return $this
-     */
-    public function set(string $path, mixed $value): static
-    {
+      *
+      * @param string $path
+      * @param mixed $value
+      * @return $this
+      */
+     public function set(string $path, mixed $value): static
+     {
         $this->guardMutable();
-        
+
         $segments = explode('.', $path);
         $current = &$this->data;
 
@@ -374,5 +375,189 @@ trait DataAccessTrait
         }
 
         return $this;
+     }
+
+     /**
+     * Find the first element matching a condition using PHP 8.4+ array_find.
+     *
+     * @param callable $callback Predicate function: function(mixed $value, string|int $key): bool
+     * @param mixed $default Default value if no match found
+     * @return mixed The first matching element or default
+     */
+     public function findElement(callable $callback, mixed $default = null): mixed
+     {
+        if (!is_array($this->data)) {
+            return $default;
+        }
+
+        return ArrayHelpers::find($this->data, $callback, $default);
+     }
+
+     /**
+     * Find the key of the first element matching a condition using PHP 8.4+ array_find_key.
+     *
+     * @param callable $callback Predicate function: function(mixed $value, string|int $key): bool
+     * @param mixed $default Default key if no match found
+     * @return string|int|mixed The key of the first matching element or default
+     */
+     public function findElementKey(callable $callback, mixed $default = null): mixed
+     {
+        if (!is_array($this->data)) {
+            return $default;
+        }
+
+        return ArrayHelpers::findKey($this->data, $callback, $default);
+     }
+
+     /**
+     * Check if ANY element matches a condition using PHP 8.4+ array_any.
+     *
+     * @param callable $callback Predicate function: function(mixed $value, string|int $key): bool
+     * @return bool True if any element matches, false otherwise
+     */
+     public function anyMatch(callable $callback): bool
+     {
+        if (!is_array($this->data)) {
+            return false;
+        }
+
+        return ArrayHelpers::any($this->data, $callback);
+     }
+
+     /**
+     * Check if ALL elements match a condition using PHP 8.4+ array_all.
+     *
+     * @param callable $callback Predicate function: function(mixed $value, string|int $key): bool
+     * @return bool True if all elements match, false otherwise
+     */
+     public function allMatch(callable $callback): bool
+     {
+        if (!is_array($this->data)) {
+            return true;
+        }
+
+        return ArrayHelpers::all($this->data, $callback);
+     }
+
+     /**
+     * Get the first element matching a condition or default.
+     *
+     * @param callable|null $callback Optional predicate function: function(mixed $value, string|int $key): bool
+     * @param mixed $default Default value if no match found
+     * @return mixed The first matching element or default
+     */
+     public function firstElement(?callable $callback = null, mixed $default = null): mixed
+     {
+        if (!is_array($this->data)) {
+            return $default;
+        }
+
+        return ArrayHelpers::first($this->data, $callback, $default);
+     }
+
+     /**
+     * Get the last element matching a condition or default.
+     *
+     * @param callable|null $callback Optional predicate function: function(mixed $value, string|int $key): bool
+     * @param mixed $default Default value if no match found
+     * @return mixed The last matching element or default
+     */
+     public function lastElement(?callable $callback = null, mixed $default = null): mixed
+     {
+        if (!is_array($this->data)) {
+            return $default;
+        }
+
+        return ArrayHelpers::last($this->data, $callback, $default);
+     }
+
+     /**
+     * Get the key of the last element matching a condition.
+     *
+     * @param callable $callback Predicate function: function(mixed $value, string|int $key): bool
+     * @param mixed $default Default key if no match found
+     * @return string|int|mixed The key of the last matching element or default
+     */
+     public function lastElementKey(callable $callback, mixed $default = null): mixed
+     {
+        if (!is_array($this->data)) {
+            return $default;
+        }
+
+        return ArrayHelpers::lastKey($this->data, $callback, $default);
+     }
+
+     /**
+     * Check if ANY of the given keys exist in the data.
+     *
+     * @param array $keys Keys to check
+     * @return bool True if any key exists, false otherwise
+     */
+     public function hasAnyKey(array $keys): bool
+     {
+        if (!is_array($this->data)) {
+            return false;
+        }
+
+        return ArrayHelpers::hasAny($this->data, $keys);
+     }
+
+     /**
+     * Check if ALL of the given keys exist in the data.
+     *
+     * @param array $keys Keys to check
+     * @return bool True if all keys exist, false otherwise
+     */
+     public function hasAllKeys(array $keys): bool
+     {
+        if (!is_array($this->data)) {
+            return false;
+        }
+
+        return ArrayHelpers::hasAll($this->data, $keys);
+     }
+
+     /**
+     * Map elements with callable support and key handling.
+     *
+     * @param callable $callback Transformation function: function(mixed $value, string|int $key): mixed
+     * @return static New instance with mapped data
+     */
+     public function mapWith(callable $callback): static
+     {
+        if (!is_array($this->data)) {
+            return $this;
+        }
+
+        $mapped = ArrayHelpers::map($this->data, $callback);
+        $new = clone $this;
+        $new->data = $mapped;
+        if (property_exists($new, 'mutabilityMode')) {
+            $new->mutabilityMode = JsonMutabilityMode::MUTABLE;
+        }
+
+        return $new;
+     }
+
+     /**
+     * Filter elements with callable support and key handling (alias for array_filter with ARRAY_FILTER_USE_BOTH).
+     *
+     * @param callable $callback Predicate function: function(mixed $value, string|int $key): bool
+     * @return static New instance with filtered data
+     */
+     public function filterWith(callable $callback): static
+     {
+        if (!is_array($this->data)) {
+            return $this;
+        }
+
+        $filtered = ArrayHelpers::filterByCallback($this->data, $callback);
+        $new = clone $this;
+        $new->data = $filtered;
+        if (property_exists($new, 'mutabilityMode')) {
+            $new->mutabilityMode = JsonMutabilityMode::MUTABLE;
+        }
+
+        return $new;
     }
 }

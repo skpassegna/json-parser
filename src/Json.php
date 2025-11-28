@@ -18,6 +18,7 @@ use Skpassegna\Json\Exceptions\ValidationException;
 use Skpassegna\Json\Schema\Validator;
 use Skpassegna\Json\Traits\DataAccessTrait;
 use Skpassegna\Json\Traits\TransformationTrait;
+use Skpassegna\Json\Traits\TypeCoercionTrait;
 use Skpassegna\Json\Utils\JsonPath;
 use Skpassegna\Json\Utils\JsonPointer;
 use Skpassegna\Json\Utils\JsonMerge;
@@ -26,6 +27,7 @@ class Json implements JsonInterface, ArrayAccess, IteratorAggregate, Countable, 
 {
     use DataAccessTrait;
     use TransformationTrait;
+    use TypeCoercionTrait;
 
     /**
      * @var array|object

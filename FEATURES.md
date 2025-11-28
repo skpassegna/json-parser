@@ -25,6 +25,13 @@
 - Data filtering and searching
 - Collection operations (count, isEmpty, sort)
 - Immutable operations with optional mutation
+- **PHP 8.4+ Array Helpers**:
+  - `findElement()` / `findElementKey()` - Find first matching element
+  - `anyMatch()` / `allMatch()` - Check if any/all elements match condition
+  - `firstElement()` / `lastElement()` / `lastElementKey()` - Get first/last matching elements
+  - `hasAnyKey()` / `hasAllKeys()` - Check key existence
+  - `mapWith()` / `filterWith()` - Enhanced mapping/filtering with key support
+  - All methods support callable predicates with value and key parameters
 
 ### 4. Data Transformation
 **Location**: `src/Traits/TransformationTrait.php`
@@ -73,6 +80,24 @@
 - Patch validation
 - Error handling and rollback
 
+### 9. Type Coercion and Normalization
+**Location**: `src/Services/TypeCoercionService.php`, `src/Traits/TypeCoercionTrait.php`
+- Strict and lenient coercion modes
+- Scalar type normalization:
+  - String, int, float, bool, array, object, null coercion
+  - Smart string-to-boolean conversion
+  - Empty value handling
+- Type validation with exception support
+- Trait-based integration for easy use in classes
+- Edge case handling for type conversions
+
+### 10. Enumerations (PHP 8.1+)
+**Location**: `src/Enums/`
+- `JsonMergeStrategy` - Merge operation strategies (recursive, replace, shallow, deep, combine)
+- `NumberFormat` - Number formatting options (integer, float, decimal, scientific, percentage)
+- `TraversalMode` - Array traversal modes (breadth-first, depth-first, lazy, strict)
+- All enums include helper methods for type checking
+
 ## Development Tools
 - PHPUnit for unit testing
 - PHPStan for static analysis
@@ -120,6 +145,60 @@ $comments = Json5Handler::extractComments($json5);
 ```php
 $json = new Json(['name' => 'John', 'age' => 30]);
 $yaml = $json->toYaml(2, 4); // inline=2, indent=4
+```
+
+### PHP 8.4+ Array Helpers
+```php
+use Skpassegna\Json\Json;
+
+$json = new Json([
+    ['id' => 1, 'name' => 'Alice', 'age' => 25],
+    ['id' => 2, 'name' => 'Bob', 'age' => 30],
+    ['id' => 3, 'name' => 'Charlie', 'age' => 35],
+]);
+
+// Find first element matching condition
+$adult = $json->findElement(fn($item) => $item['age'] > 28);
+
+// Check if any/all elements match condition
+$hasAdults = $json->anyMatch(fn($item) => $item['age'] >= 30);
+$allAdults = $json->allMatch(fn($item) => $item['age'] >= 18);
+
+// Get first/last matching elements
+$firstAdult = $json->firstElement(fn($item) => $item['age'] > 25);
+$lastAdult = $json->lastElement(fn($item) => $item['age'] > 25);
+
+// Check key existence
+$hasRequired = $json->hasAllKeys(['id', 'name']);
+$hasOptional = $json->hasAnyKey(['email', 'phone']);
+
+// Enhanced mapping with key support
+$indexed = $json->mapWith(fn($item, $key) => [...$item, 'index' => $key]);
+```
+
+### Type Coercion
+```php
+use Skpassegna\Json\Json;
+use Skpassegna\Json\Services\TypeCoercionService;
+
+$json = new Json(['value' => '42', 'flag' => 'true']);
+
+// Enable type coercion with lenient mode (default)
+$json->enableStrictCoercion(false);
+
+// Convert values to different types
+$intValue = $json->coerceInt('42');           // 42
+$boolValue = $json->coerceBool('true');       // true
+$stringValue = $json->coerceString(100);      // "100"
+$arrayValue = $json->coerceArrayType('value'); // ['value']
+
+// Custom coercion service with strict mode
+$coercer = new TypeCoercionService(strict: true);
+try {
+    $coercer->coerceToInt('abc');  // Throws InvalidArgumentException
+} catch (InvalidArgumentException $e) {
+    echo "Strict coercion failed: " . $e->getMessage();
+}
 ```
 
 ## API Documentation
