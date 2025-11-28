@@ -14,10 +14,15 @@ use Traversable;
 use Psr\Http\Message\StreamInterface;
 use Skpassegna\Json\Cache\MemoryStore;
 use Skpassegna\Json\Contracts\CacheStoreInterface;
+use Skpassegna\Json\Contracts\EventDispatcherInterface;
 use Skpassegna\Json\Contracts\JsonInterface;
 use Skpassegna\Json\Exceptions\ParseException;
 use Skpassegna\Json\Exceptions\RuntimeException;
 use Skpassegna\Json\Exceptions\ValidationException;
+use Skpassegna\Json\Events\EventDispatcher;
+use Skpassegna\Json\Events\JsonEvent;
+use Skpassegna\Json\Enums\EventType;
+use Skpassegna\Json\Enums\DiffMergeStrategy;
 use Skpassegna\Json\Schema\Validator;
 use Skpassegna\Json\Streaming\LazyJsonProxy;
 use Skpassegna\Json\Streaming\StreamingBuilder;
@@ -26,15 +31,31 @@ use Skpassegna\Json\Streaming\StreamingJsonSerializer;
 use Skpassegna\Json\Traits\DataAccessTrait;
 use Skpassegna\Json\Traits\TransformationTrait;
 use Skpassegna\Json\Traits\TypeCoercionTrait;
+use Skpassegna\Json\Utils\DiffMergeStrategies;
 use Skpassegna\Json\Utils\JsonPath;
 use Skpassegna\Json\Utils\JsonPointer;
 use Skpassegna\Json\Utils\JsonMerge;
+use Skpassegna\Json\Utils\ReflectionInspector;
 
 class Json implements JsonInterface, ArrayAccess, IteratorAggregate, Countable, Stringable
 {
     use DataAccessTrait;
     use TransformationTrait;
     use TypeCoercionTrait;
+
+    /**
+     * Global event dispatcher instance.
+     *
+     * @var EventDispatcherInterface|null
+     */
+    private static ?EventDispatcherInterface $globalDispatcher = null;
+
+    /**
+     * Instance event dispatcher.
+     *
+     * @var EventDispatcherInterface|null
+     */
+    private ?EventDispatcherInterface $dispatcher = null;
 
     /**
      * @var array|object
@@ -278,6 +299,104 @@ class Json implements JsonInterface, ArrayAccess, IteratorAggregate, Countable, 
         }
 
         return $this;
+    }
+
+    /**
+     * Merge using an advanced strategy with event dispatching.
+     *
+     * @param JsonInterface|array $source The source to merge from
+     * @param DiffMergeStrategy $strategy The merge strategy to use
+     * @param ?EventDispatcherInterface $dispatcher Optional event dispatcher
+     * @return static
+     * @throws RuntimeException If the strategy fails
+     */
+    public function mergeWithStrategy(
+        JsonInterface|array $source,
+        DiffMergeStrategy $strategy = DiffMergeStrategy::MERGE_RECURSIVE,
+        ?EventDispatcherInterface $dispatcher = null
+    ): static {
+        $this->guardMutable();
+        
+        $sourceData = $source instanceof JsonInterface ? $source->getData() : $source;
+        $dispatcher = $dispatcher ?? $this->dispatcher;
+
+        if (!$strategy->isMergeStrategy()) {
+            throw new RuntimeException("Strategy {$strategy->value} is not a merge strategy");
+        }
+
+        try {
+            $dispatcher?->dispatch(
+                JsonEvent::beforeOperation(EventType::BEFORE_MERGE, 'merge', $this->data, [
+                    'strategy' => $strategy->value,
+                    'source' => $sourceData,
+                ])
+            );
+
+            $strategyCallable = DiffMergeStrategies::getMergeStrategy($strategy);
+            $this->data = $strategyCallable($this->data, $sourceData);
+
+            $dispatcher?->dispatch(
+                JsonEvent::afterOperation(EventType::AFTER_MERGE, 'merge', $this->data, $this->data, [
+                    'strategy' => $strategy->value,
+                ])
+            );
+        } catch (\Exception $e) {
+            $dispatcher?->dispatch(
+                JsonEvent::onError(EventType::MERGE_ERROR, 'merge', $this->data, $e, [
+                    'strategy' => $strategy->value,
+                ])
+            );
+            throw new RuntimeException("Merge failed with strategy {$strategy->value}: {$e->getMessage()}", previous: $e);
+        }
+
+        return $this;
+    }
+
+    /**
+     * Calculate diff between this and another JSON object.
+     *
+     * @param JsonInterface|array $other The other JSON to compare with
+     * @param DiffMergeStrategy $strategy The diff strategy to use
+     * @param ?EventDispatcherInterface $dispatcher Optional event dispatcher
+     * @return array The diff result (format depends on strategy)
+     */
+    public function diffWithStrategy(
+        JsonInterface|array $other,
+        DiffMergeStrategy $strategy = DiffMergeStrategy::DIFF_DETAILED,
+        ?EventDispatcherInterface $dispatcher = null
+    ): array {
+        $otherData = $other instanceof JsonInterface ? $other->getData() : $other;
+        $dispatcher = $dispatcher ?? $this->dispatcher;
+
+        if (!$strategy->isDiffStrategy()) {
+            throw new RuntimeException("Strategy {$strategy->value} is not a diff strategy");
+        }
+
+        try {
+            $dispatcher?->dispatch(
+                JsonEvent::beforeOperation(EventType::BEFORE_DIFF, 'diff', $this->data, [
+                    'strategy' => $strategy->value,
+                    'other' => $otherData,
+                ])
+            );
+
+            $strategyCallable = DiffMergeStrategies::getDiffStrategy($strategy);
+            $result = $strategyCallable($this->data, $otherData);
+
+            $event = JsonEvent::afterOperation(EventType::AFTER_DIFF, 'diff', $this->data, $result, [
+                'strategy' => $strategy->value,
+            ]);
+            $dispatcher?->dispatch($event);
+
+            return $event->getResult();
+        } catch (\Exception $e) {
+            $dispatcher?->dispatch(
+                JsonEvent::onError(EventType::ON_ERROR, 'diff', $this->data, $e, [
+                    'strategy' => $strategy->value,
+                ])
+            );
+            throw new RuntimeException("Diff failed with strategy {$strategy->value}: {$e->getMessage()}", previous: $e);
+        }
     }
 
     /**
@@ -605,6 +724,67 @@ class Json implements JsonInterface, ArrayAccess, IteratorAggregate, Countable, 
             'data' => $this->data,
             'mutabilityMode' => $this->mutabilityMode->name,
         ];
+    }
+
+    /**
+     * Get or create the global event dispatcher.
+     *
+     * @return EventDispatcherInterface
+     */
+    public static function dispatcher(): EventDispatcherInterface
+    {
+        if (self::$globalDispatcher === null) {
+            self::$globalDispatcher = new EventDispatcher();
+        }
+        return self::$globalDispatcher;
+    }
+
+    /**
+     * Set a global event dispatcher.
+     *
+     * @param EventDispatcherInterface $dispatcher
+     * @return void
+     */
+    public static function setDispatcher(EventDispatcherInterface $dispatcher): void
+    {
+        self::$globalDispatcher = $dispatcher;
+    }
+
+    /**
+     * Get the instance's event dispatcher.
+     *
+     * @return EventDispatcherInterface
+     */
+    public function getDispatcher(): EventDispatcherInterface
+    {
+        if ($this->dispatcher === null) {
+            $this->dispatcher = new EventDispatcher();
+        }
+        return $this->dispatcher;
+    }
+
+    /**
+     * Set the instance's event dispatcher.
+     *
+     * @param EventDispatcherInterface $dispatcher
+     * @return $this
+     */
+    public function setInstanceDispatcher(EventDispatcherInterface $dispatcher): static
+    {
+        $this->dispatcher = $dispatcher;
+        return $this;
+    }
+
+    /**
+     * Create a reflection inspector for the current data.
+     *
+     * @param bool $useDispatcher Whether to include listener information
+     * @return ReflectionInspector
+     */
+    public function reflect(bool $useDispatcher = true): ReflectionInspector
+    {
+        $dispatcher = $useDispatcher ? $this->dispatcher : null;
+        return new ReflectionInspector($this->data, $dispatcher);
     }
 
     /**
