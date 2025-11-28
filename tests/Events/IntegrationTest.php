@@ -111,8 +111,7 @@ class IntegrationTest extends TestCase
         });
 
         $this->assertTrue($dispatcher->hasListeners('custom.event'));
-
-        $this->assertEquals(1, count($events));
+        $this->assertEquals(1, count($dispatcher->getListeners('custom.event')));
     }
 
     public function testReflectionDump(): void

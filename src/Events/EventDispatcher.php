@@ -58,7 +58,19 @@ final class EventDispatcher implements EventDispatcherInterface
             $this->listenerCounts[$eventType] = 0;
         }
 
-        $this->listeners[$eventType][$priority] = $listener;
+        // Handle multiple listeners with same priority by using negative float offset
+        // This maintains insertion order while respecting priority levels
+        // Higher priority numbers execute first, but within same priority, insertion order is preserved
+        $key = (float)$priority;
+        $counter = 0;
+        while (isset($this->listeners[$eventType][$key])) {
+            $counter++;
+            // Subtract a small fraction to maintain insertion order within same priority
+            // but still sort correctly with different priorities
+            $key = $priority - ($counter / 100000);
+        }
+
+        $this->listeners[$eventType][$key] = $listener;
         $this->listenerCounts[$eventType]++;
 
         krsort($this->listeners[$eventType], SORT_NUMERIC);
@@ -66,10 +78,10 @@ final class EventDispatcher implements EventDispatcherInterface
         return $this;
     }
 
-    public function unsubscribe(string $eventType, callable $listener): self
+    public function unsubscribe(string $eventType, callable $listener): bool
     {
         if (!isset($this->listeners[$eventType])) {
-            return $this;
+            return false;
         }
 
         foreach ($this->listeners[$eventType] as $priority => $existingListener) {
@@ -82,11 +94,11 @@ final class EventDispatcher implements EventDispatcherInterface
                     unset($this->listenerCounts[$eventType]);
                 }
 
-                break;
+                return true;
             }
         }
 
-        return $this;
+        return false;
     }
 
     public function getListeners(string $eventType): array
@@ -99,27 +111,56 @@ final class EventDispatcher implements EventDispatcherInterface
         return isset($this->listeners[$eventType]) && !empty($this->listeners[$eventType]);
     }
 
-    public function clearListeners(?string $eventType = null): self
+    public function clearListeners(?string $eventType = null): int
     {
         if ($eventType === null) {
+            $total = array_sum($this->listenerCounts);
             $this->listeners = [];
             $this->listenerCounts = [];
-            return $this;
+            return $total;
         }
 
         if (!isset($this->listeners[$eventType])) {
-            return $this;
+            return 0;
         }
 
+        $count = $this->listenerCounts[$eventType] ?? 0;
         unset($this->listeners[$eventType]);
         unset($this->listenerCounts[$eventType]);
 
-        return $this;
+        return $count;
     }
 
     public function getEventTypes(): array
     {
         return array_keys($this->listeners);
+    }
+
+    /**
+     * Alias for removeEventListener to maintain interface contract.
+     *
+     * @param string $eventType The event type
+     * @param callable $listener The listener callback to remove
+     *
+     * @return bool True if the listener was found and removed, false otherwise
+     */
+    public function removeEventListener(string $eventType, callable $listener): bool
+    {
+        return $this->unsubscribe($eventType, $listener);
+    }
+
+    /**
+     * Alias for addEventListener to maintain interface contract.
+     *
+     * @param string $eventType The event type to listen for
+     * @param callable $listener The listener callback
+     * @param int $priority Priority for execution order (higher = earlier)
+     *
+     * @return self For method chaining
+     */
+    public function addEventListener(string $eventType, callable $listener, int $priority = 0): self
+    {
+        return $this->subscribe($eventType, $listener, $priority);
     }
 
     /**

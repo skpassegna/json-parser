@@ -59,15 +59,15 @@ class EventDispatcherTest extends TestCase
     {
         $results = [];
 
-        $this->dispatcher->subscribe('test', function () use (&$results) {
+        $this->dispatcher->subscribe(EventType::BEFORE_PARSE->value, function () use (&$results) {
             $results[] = 'low';
         }, 0);
 
-        $this->dispatcher->subscribe('test', function () use (&$results) {
+        $this->dispatcher->subscribe(EventType::BEFORE_PARSE->value, function () use (&$results) {
             $results[] = 'high';
         }, 10);
 
-        $this->dispatcher->subscribe('test', function () use (&$results) {
+        $this->dispatcher->subscribe(EventType::BEFORE_PARSE->value, function () use (&$results) {
             $results[] = 'medium';
         }, 5);
 
@@ -81,12 +81,12 @@ class EventDispatcherTest extends TestCase
     {
         $results = [];
 
-        $this->dispatcher->subscribe('test', function (JsonEvent $event) use (&$results) {
+        $this->dispatcher->subscribe(EventType::BEFORE_PARSE->value, function (JsonEvent $event) use (&$results) {
             $results[] = 'first';
             $event->stopPropagation();
         }, 10);
 
-        $this->dispatcher->subscribe('test', function () use (&$results) {
+        $this->dispatcher->subscribe(EventType::BEFORE_PARSE->value, function () use (&$results) {
             $results[] = 'second';
         }, 5);
 
@@ -153,11 +153,11 @@ class EventDispatcherTest extends TestCase
 
     public function testMultipleListenersCanModifyEvent(): void
     {
-        $this->dispatcher->subscribe('test', function (JsonEvent $event) {
+        $this->dispatcher->subscribe(EventType::BEFORE_PARSE->value, function (JsonEvent $event) {
             $event->setMetadata('processed', true);
         }, 10);
 
-        $this->dispatcher->subscribe('test', function (JsonEvent $event) {
+        $this->dispatcher->subscribe(EventType::BEFORE_PARSE->value, function (JsonEvent $event) {
             $this->assertTrue($event->getMetadata()['processed'] ?? false);
         }, 5);
 
@@ -171,5 +171,90 @@ class EventDispatcherTest extends TestCase
         $result = $this->dispatcher->dispatch($event);
 
         $this->assertSame($event, $result);
+    }
+
+    public function testAddEventListenerAlias(): void
+    {
+        $called = false;
+        $listener = function () use (&$called) {
+            $called = true;
+        };
+
+        $result = $this->dispatcher->addEventListener('test.event', $listener);
+        $this->assertSame($this->dispatcher, $result);
+        $this->assertTrue($this->dispatcher->hasListeners('test.event'));
+    }
+
+    public function testRemoveEventListenerAlias(): void
+    {
+        $listener = function () {};
+
+        $this->dispatcher->addEventListener('test.event', $listener);
+        $this->assertTrue($this->dispatcher->hasListeners('test.event'));
+
+        $result = $this->dispatcher->removeEventListener('test.event', $listener);
+        $this->assertTrue($result);
+        $this->assertFalse($this->dispatcher->hasListeners('test.event'));
+    }
+
+    public function testUnsubscribeReturnsTrueOnSuccess(): void
+    {
+        $listener = function () {};
+        
+        $this->dispatcher->subscribe('test.event', $listener);
+        $result = $this->dispatcher->unsubscribe('test.event', $listener);
+        
+        $this->assertTrue($result);
+    }
+
+    public function testClearListenersReturnsCount(): void
+    {
+        $this->dispatcher->subscribe('event1', function () {});
+        $this->dispatcher->subscribe('event1', function () {});
+        $this->dispatcher->subscribe('event2', function () {});
+
+        $result = $this->dispatcher->clearListeners('event1');
+
+        $this->assertEquals(2, $result);
+        $this->assertFalse($this->dispatcher->hasListeners('event1'));
+        $this->assertTrue($this->dispatcher->hasListeners('event2'));
+    }
+
+    public function testClearAllListenersReturnsTotal(): void
+    {
+        $this->dispatcher->subscribe('event1', function () {});
+        $this->dispatcher->subscribe('event1', function () {});
+        $this->dispatcher->subscribe('event2', function () {});
+        $this->dispatcher->subscribe('event2', function () {});
+
+        $result = $this->dispatcher->clearListeners();
+
+        $this->assertEquals(4, $result);
+        $this->assertEmpty($this->dispatcher->getEventTypes());
+    }
+
+    public function testMultipleListenersWithSamePriority(): void
+    {
+        $results = [];
+
+        $this->dispatcher->subscribe(EventType::BEFORE_PARSE->value, function () use (&$results) {
+            $results[] = 'first';
+        }, 0);
+
+        $this->dispatcher->subscribe(EventType::BEFORE_PARSE->value, function () use (&$results) {
+            $results[] = 'second';
+        }, 0);
+
+        $this->dispatcher->subscribe(EventType::BEFORE_PARSE->value, function () use (&$results) {
+            $results[] = 'third';
+        }, 0);
+
+        $event = JsonEvent::beforeOperation(EventType::BEFORE_PARSE, 'parse', []);
+        $this->dispatcher->dispatch($event);
+
+        $this->assertCount(3, $results);
+        $this->assertContains('first', $results);
+        $this->assertContains('second', $results);
+        $this->assertContains('third', $results);
     }
 }
